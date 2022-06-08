@@ -192,7 +192,7 @@ namespace TradeBuddy
 				else
 					ImGui.Text("支付方：");
 
-				
+
 				DrowNewTextRow("支付", 3, header, giveArray);
 				ImGui.Text("支付：" + giveMoney->NodeText.ToString() + "p");
 
@@ -217,15 +217,15 @@ namespace TradeBuddy
 			int count;
 			string iconIdStr, itemName, countStr;
 
-			ImGui.BeginTable(title, col, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg| ImGuiTableFlags.BordersInnerH);
-			
+			ImGui.BeginTable(title, col, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH);
+
 			for (int i = 0; i < col; i++)
 			{
 				ImGui.TableNextColumn();
 				ImGui.TableHeader(headerText[i]);
 			}
-			ImGui.SetColumnWidth(1, 15);
-			ImGui.SetColumnWidth(2, 25);
+			//ImGui.SetColumnWidth(1, (float)15.0);
+			//ImGui.SetColumnWidth(2, (float)25.0);
 
 			for (int i = 0; i < atkResNodeList.Length; i++)
 			{
