@@ -1,0 +1,13 @@
+{
+  "Author": "your name here",
+  "Name": "Trade Buddy",
+  "Punchline": "短描述",
+  "Description": "详细描述，记录交易历史",
+  "InternalName": "TradeBuddy",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "sample",
+    "plugin",
+    "goats"
+  ]
+}
