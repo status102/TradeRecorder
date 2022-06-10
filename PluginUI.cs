@@ -29,13 +29,6 @@ namespace TradeBuddy
 			set { this.settingsVisible = value; }
 		}
 
-		private bool tradeVisible = false;
-		public bool TradeVisible
-		{
-			get { return this.tradeVisible; }
-			set { this.tradeVisible = value; }
-		}
-
 		public bool historyVisible = false;//交易历史界面是否可见
 
 		public bool tradeOnceVisible = true;//保存单次交易时，监控窗口是否显示
@@ -47,13 +40,13 @@ namespace TradeBuddy
 			this.configuration = configuration;
 			this.goatImage = goatImage;
 			
-			DalamudDll.ChatGui.ChatMessage += TradeUI.messageDelegate;
+			DalamudDll.ChatGui.ChatMessage += Trade.messageDelegate;
 		}
 
 		public void Dispose()
 		{
 			this.goatImage.Dispose();
-			DalamudDll.ChatGui.ChatMessage -= TradeUI.messageDelegate;
+			DalamudDll.ChatGui.ChatMessage -= Trade.messageDelegate;
 		}
 
 		public void Draw()
@@ -66,9 +59,10 @@ namespace TradeBuddy
 			// draw delegates as low as possible.
 
 			DrawMainWindow();
-			DrawSettingsWindow();
-			TradeUI.DrawTrade(ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
-			HistoryUI.DrawHistory(ref historyVisible);
+			//DrawSettingsWindow();
+			Setting.DrawSetting(ref settingsVisible);
+			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
+			History.DrawHistory(ref historyVisible);
 		}
 
 		public void DrawMainWindow()
@@ -83,8 +77,7 @@ namespace TradeBuddy
 
 				ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.ArrowLeft);
 				ImGuiComponents.TextWithLabel("label", "value", "hint");
-				ImGui.Text($"The random config bool is {this.configuration.SomePropertyToBeSavedAndWithADefault}");
-
+				
 				if (ImGui.Button("Show Settings"))
 				{
 					SettingsVisible = true;
@@ -112,13 +105,7 @@ namespace TradeBuddy
 				ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
 			{
 				// can't ref a property, so use a local copy
-				var configValue = this.configuration.SomePropertyToBeSavedAndWithADefault;
-				if (ImGui.Checkbox("Random Config Bool", ref configValue))
-				{
-					this.configuration.SomePropertyToBeSavedAndWithADefault = configValue;
-					// can save immediately on change, if you don't want to provide a "Save and Close" button
-					this.configuration.Save();
-				}
+				
 			}
 			ImGui.End();
 		}

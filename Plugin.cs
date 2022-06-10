@@ -41,7 +41,7 @@ namespace TradeBuddy
 
 			this.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
 			{
-				HelpMessage = "A useful message to display in /xlhelp"
+				HelpMessage = "/tb 打开历史记录和交易监控窗口"
 			});
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -58,10 +58,16 @@ namespace TradeBuddy
 
 		private void OnCommand(string command, string args)
 		{
+			string arg = args.Trim().Replace("\"", string.Empty);
 			// in response to the slash command, just display our main ui
 			//this.PluginUi.Visible = true;
-			this.PluginUi.tradeOnceVisible = true;
-			this.PluginUi.historyVisible = true;
+			if (string.IsNullOrEmpty(arg))
+			{
+				this.PluginUi.tradeOnceVisible = true;
+				this.PluginUi.historyVisible = true;
+			}
+			if (arg == "cfg" || arg == "config")
+				this.PluginUi.SettingsVisible = true;
 		}
 
 		private void DrawUI()
