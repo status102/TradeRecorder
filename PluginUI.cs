@@ -1,12 +1,10 @@
 ﻿using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Components;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using System;
-using System.Linq;
 using System.Numerics;
+using TradeBuddy.Window;
 using static Dalamud.Game.Gui.ChatGui;
 
 namespace TradeBuddy
@@ -56,8 +54,8 @@ namespace TradeBuddy
 				{
 					//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
 					//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
-					if (message.TextValue == configuration.tradeConfirmStr) {}
-					else if(message.TextValue == configuration.tradeCancelStr) {}
+					if (message.TextValue == configuration.tradeConfirmStr) { }
+					else if (message.TextValue == configuration.tradeCancelStr) { }
 				}
 			};
 			Plugin.plugin.ChatGui.ChatMessage += messageDelegate;
@@ -81,6 +79,7 @@ namespace TradeBuddy
 			DrawMainWindow();
 			DrawSettingsWindow();
 			TradeUI.DrawTrade(ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
+			HistoryUI.DrawHistory(ref historyVisible);
 		}
 
 		public void DrawMainWindow()

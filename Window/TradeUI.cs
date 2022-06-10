@@ -18,7 +18,7 @@ namespace TradeBuddy
 		}
 		private static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
 		private static float[] tableWidth = new float[] { -1, 80, 300 };
-		private static int width = 480, giveGil = 0, receiveGil = 0;
+		private static int width = 480, height = 600, giveGil = 0, receiveGil = 0;
 		public static Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
 		public static Item[] receiveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
 
@@ -36,7 +36,7 @@ namespace TradeBuddy
 			if (trade->UldManager.NodeListCount <= 0) return;
 			if (trade->UldManager.LoadedState != 3) return;//等待交易窗口加载完毕
 
-			ImGui.SetNextWindowSize(new Vector2(width, 600), ImGuiCond.Appearing);
+			ImGui.SetNextWindowSize(new Vector2(width, height), ImGuiCond.Appearing);
 			ImGui.SetNextWindowPos(new Vector2(trade->X - width, trade->Y), ImGuiCond.Appearing);
 			if (ImGui.Begin("玩家交易", ref tradeOnceVisible, ImGuiWindowFlags.NoCollapse))
 			{
@@ -84,6 +84,10 @@ namespace TradeBuddy
 					ImGui.Text("预期金额：");
 					ImGui.Bullet();
 					ImGui.SameLine();
+					ImGui.TextColored(color[0], "左键单击复制到剪贴板");
+
+					ImGui.Bullet();
+					ImGui.SameLine();
 					ImGui.TextColored(color[0], "“---”为未设定预期金额");
 
 					ImGui.Bullet();
@@ -99,7 +103,6 @@ namespace TradeBuddy
 					ImGui.TextColored(color[2], "为设定了NQ的预期金额，但交易的是HQ物品");
 
 					ImGui.EndTooltip();
-					//ImGui.SetTooltip("测试");
 				}
 
 				ImGui.AlignTextToFramePadding();
@@ -238,7 +241,10 @@ namespace TradeBuddy
 				if (itemArray[i].price == 0)
 					ImGui.TextColored(color[priceType], "---");
 				else
+				{
 					ImGui.TextColored(color[priceType], String.Format("{0:0,0}", itemArray[i].price).TrimStart('0') + "/" + String.Format("{0:0,0}", itemArray[i].price * itemArray[i].count).TrimStart('0'));
+					if (ImGui.IsItemClicked()) ImGui.SetClipboardText(String.Format("{0:0,0}", itemArray[i].price * itemArray[i].count).TrimStart('0'));
+				}				
 			}
 
 			ImGui.TableNextColumn();
@@ -256,7 +262,8 @@ namespace TradeBuddy
 			}
 			sum += gil;
 			ImGui.Text(String.Format("{0:0,0}", sum).TrimStart('0'));
-
+			if (ImGui.IsItemHovered())ImGui.SetTooltip("包含金币在内的全部金额");
+			if(ImGui.IsItemClicked()) ImGui.SetTooltip(String.Format("{0:0,0}", sum).TrimStart('0'));
 			ImGui.EndTable();
 		}
 
