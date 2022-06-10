@@ -11,7 +11,6 @@ namespace TradeBuddy
 {
 	public class PluginUI : IDisposable
 	{
-		private OnMessageDelegate messageDelegate;
 		private Configuration configuration;
 
 		private ImGuiScene.TextureWrap goatImage;
@@ -43,28 +42,18 @@ namespace TradeBuddy
 
 		public bool finalCheck = false;//在双方都确认的情况下进入最终交易确认
 
-		// passing in the image here just for simplicity
 		public PluginUI(Configuration configuration, ImGuiScene.TextureWrap goatImage)
 		{
 			this.configuration = configuration;
 			this.goatImage = goatImage;
-			messageDelegate = (XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled) =>
-			{
-				if (finalCheck && type == XivChatType.SystemMessage && !isHandled)
-				{
-					//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
-					//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
-					if (message.TextValue == configuration.tradeConfirmStr) { }
-					else if (message.TextValue == configuration.tradeCancelStr) { }
-				}
-			};
-			Plugin.plugin.ChatGui.ChatMessage += messageDelegate;
+			
+			DalamudDll.ChatGui.ChatMessage += TradeUI.messageDelegate;
 		}
 
 		public void Dispose()
 		{
 			this.goatImage.Dispose();
-			Plugin.plugin.ChatGui.ChatMessage -= messageDelegate;
+			DalamudDll.ChatGui.ChatMessage -= TradeUI.messageDelegate;
 		}
 
 		public void Draw()

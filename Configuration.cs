@@ -14,6 +14,8 @@ namespace TradeBuddy
         public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
 
         public bool ShowTrade { get; set; } = true;
+        public bool PrintConfirmTrade { get; set; } = true;
+        public bool PrintCancelTrade { get; set; } = true;
 
         public string tradeConfirmStr { get; set; } = "交易完成。";
         public string tradeCancelStr { get; set; } = "交易取消。";

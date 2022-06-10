@@ -1,4 +1,6 @@
-﻿using Dalamud.Game;
+﻿using Dalamud.Data;
+using Dalamud.Game;
+using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
@@ -11,7 +13,7 @@ namespace TradeBuddy
 	{
 		public static void DalamudInitialize(DalamudPluginInterface pluginInterface)
 			=> pluginInterface.Create<DalamudDll>();
-		
+
 		// @formatter:off
 		[PluginService][RequiredVersion("1.0")] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static CommandManager CommandManager { get; private set; } = null!;
@@ -26,6 +28,8 @@ namespace TradeBuddy
 		//[PluginService][RequiredVersion("1.0")] public static Condition              _Conditions      { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static KeyState Keys { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
+		[PluginService][RequiredVersion("1.0")] public static DataManager DataManager { get; private set; } = null!;
+		[PluginService][RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static FlyTextGui             _FlyTexts        { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static ToastGui               _Toasts          { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static JobGauges              _Gauges          { get; private set; } = null!;

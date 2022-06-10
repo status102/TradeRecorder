@@ -1,4 +1,5 @@
 ﻿using Dalamud.Data;
+using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Game.Network;
@@ -14,23 +15,19 @@ namespace TradeBuddy
 
 		private const string commandName = "/tb";
 
-		[PluginService][RequiredVersion("1.0")] internal GameGui GameGui { get; init; }
-		[PluginService][RequiredVersion("1.0")] internal ChatGui ChatGui { get; init; }
-		[PluginService][RequiredVersion("1.0")] internal DataManager DataManager { get; init; }
-		[PluginService][RequiredVersion("1.0")] internal GameNetwork GameNetwork { get; init; }
-
 		public DalamudPluginInterface PluginInterface { get; init; }
 		public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
 		public PluginUI PluginUi { get; init; }
 
-		public static Plugin plugin { get; set; }
+		public static Plugin Instance { get; private set; }
 
 		public Plugin(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-			[RequiredVersion("1.0")] CommandManager commandManager)
+			[RequiredVersion("1.0")] CommandManager commandManager
+		)
 		{
-			plugin = this;
+			Instance = this;
 			this.PluginInterface = pluginInterface;
 			this.CommandManager = commandManager;
 
@@ -38,7 +35,6 @@ namespace TradeBuddy
 			this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 			this.Configuration.Initialize(this.PluginInterface);
 
-			// you might normally want to embed resources and load them from the manifest stream
 			var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
 			var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
 			this.PluginUi = new PluginUI(this.Configuration, goatImage);
@@ -63,8 +59,9 @@ namespace TradeBuddy
 		private void OnCommand(string command, string args)
 		{
 			// in response to the slash command, just display our main ui
-			this.PluginUi.Visible = true;
+			//this.PluginUi.Visible = true;
 			this.PluginUi.tradeOnceVisible = true;
+			this.PluginUi.historyVisible = true;
 		}
 
 		private void DrawUI()
