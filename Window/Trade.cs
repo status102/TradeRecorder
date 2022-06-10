@@ -194,7 +194,11 @@ namespace TradeBuddy
 				resNode = atkResNodeList[i];
 				iconId = ((AtkComponentIcon*)resNode->GetComponent())->IconId;
 				// todo 测试数据
-				if (itemArray[i] == null) DalamudDll.ChatGui.Print(i + "为null");
+				if (itemArray[i] == null)
+				{
+					DalamudDll.ChatGui.Print(i + "为null");
+					itemArray[i] = new Item();
+				}
 				//放入交易格子中再取消时，iconId会残留为之前的数值
 				if (!resNode->IsVisible || iconId < 1)
 				{
@@ -235,32 +239,28 @@ namespace TradeBuddy
 				if (item1 != null)
 				{
 					// todo 加入物品图片
-					if (iconIdStr.StartsWith("10"))
-						itemName = item1.Name + "HQ";
-					else
-						itemName = item1.Name;
-
-					itemArray[i].name = itemName;
+					itemArray[i].name = item1.Name;
+					if (itemArray[i].isHQ) itemArray[i].name += "HQ";
 
 					ImGui.TableNextColumn();
 					if (itemArray[i].image != null) ImGui.Image(itemArray[i].image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 					ImGui.TableNextColumn();
-					ImGui.Text(itemName);
+					ImGui.Text(itemArray[i].name);
 
-					string presetPriceName = itemName;
+					string presetPriceName = itemArray[i].name;
 					itemArray[i].price = 0;
 
-					if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemName))
+					if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name))
 						priceType = 0;
-					else if (itemName.EndsWith("HQ") && Plugin.Instance.Configuration.presetItem.ContainsKey(itemName[0..^2]))
+					else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name[0..^2]))
 					{
 						priceType = 2;
-						presetPriceName = itemName[0..^2];
+						presetPriceName = itemArray[i].name[0..^2];
 					}
-					else if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemName + "HQ"))
+					else if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name + "HQ"))
 					{
 						priceType = 1;
-						presetPriceName = itemName + "HQ";
+						presetPriceName = itemArray[i].name + "HQ";
 					}
 
 					foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetList)
