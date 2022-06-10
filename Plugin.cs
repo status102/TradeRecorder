@@ -1,87 +1,80 @@
 ﻿using Dalamud.Data;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
+using Dalamud.Game.Network;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using System.IO;
-using System.Reflection;
 
 namespace TradeBuddy
 {
-    public sealed class Plugin : IDalamudPlugin
-    {
-        public string Name => "Trade Buddy";
+	public sealed class Plugin : IDalamudPlugin
+	{
+		public string Name => "Trade Buddy";
 
-        private const string commandName = "/tb";
+		private const string commandName = "/tb";
 
-        [PluginService]
-        [RequiredVersion("1.0")]
-        internal GameGui GameGui { get; init; }
+		[PluginService][RequiredVersion("1.0")] internal GameGui GameGui { get; init; }
+		[PluginService][RequiredVersion("1.0")] internal ChatGui ChatGui { get; init; }
+		[PluginService][RequiredVersion("1.0")] internal DataManager DataManager { get; init; }
+		[PluginService][RequiredVersion("1.0")] internal GameNetwork GameNetwork { get; init; }
 
-        [PluginService]
-        [RequiredVersion("1.0")]
-        internal ChatGui ChatGui { get; init; }
+		public DalamudPluginInterface PluginInterface { get; init; }
+		public CommandManager CommandManager { get; init; }
+		public Configuration Configuration { get; init; }
+		public PluginUI PluginUi { get; init; }
 
-        [PluginService]
-        [RequiredVersion("1.0")]
-        internal DataManager DataManager { get; init; }
+		public static Plugin plugin { get; set; }
 
-        public DalamudPluginInterface PluginInterface { get; init; }
-        public CommandManager CommandManager { get; init; }
-        public Configuration Configuration { get; init; }
-        public PluginUI PluginUi { get; init; }
+		public Plugin(
+			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
+			[RequiredVersion("1.0")] CommandManager commandManager)
+		{
+			plugin = this;
+			this.PluginInterface = pluginInterface;
+			this.CommandManager = commandManager;
 
-        public static Plugin plugin { get; set; }
+			DalamudDll.DalamudInitialize(pluginInterface);
+			this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+			this.Configuration.Initialize(this.PluginInterface);
 
-        public Plugin(
-            [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-            [RequiredVersion("1.0")] CommandManager commandManager)
-        {
-            plugin = this;
-            this.PluginInterface = pluginInterface;
-            this.CommandManager = commandManager;
+			// you might normally want to embed resources and load them from the manifest stream
+			var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
+			var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
+			this.PluginUi = new PluginUI(this.Configuration, goatImage);
 
-            DalamudDll.DalamudInitialize(pluginInterface);
-            this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.Configuration.Initialize(this.PluginInterface);
+			this.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
+			{
+				HelpMessage = "A useful message to display in /xlhelp"
+			});
 
-            // you might normally want to embed resources and load them from the manifest stream
-            var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
-            var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
-            this.PluginUi = new PluginUI(this.Configuration, goatImage);
+			this.PluginInterface.UiBuilder.Draw += DrawUI;
+			this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
 
-            this.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
-            {
-                HelpMessage = "A useful message to display in /xlhelp"
-            });
+			DalamudDll.ChatGui.Print("测试插件载入成功");
+		}
 
-            this.PluginInterface.UiBuilder.Draw += DrawUI;
-            this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+		public void Dispose()
+		{
+			this.PluginUi.Dispose();
+			this.CommandManager.RemoveHandler(commandName);
+		}
 
-            DalamudDll.ChatGui.Print("测试插件载入成功");
-        }
+		private void OnCommand(string command, string args)
+		{
+			// in response to the slash command, just display our main ui
+			this.PluginUi.Visible = true;
+			this.PluginUi.tradeOnceVisible = true;
+		}
 
-        public void Dispose()
-        {
-            this.PluginUi.Dispose();
-            this.CommandManager.RemoveHandler(commandName);
-        }
+		private void DrawUI()
+		{
+			this.PluginUi.Draw();
+		}
 
-        private void OnCommand(string command, string args)
-        {
-            // in response to the slash command, just display our main ui
-            this.PluginUi.Visible = true;
-            this.PluginUi.tradeOnceVisible = true;
-        }
-
-        private void DrawUI()
-        {
-            this.PluginUi.Draw();
-        }
-
-        private void DrawConfigUI()
-        {
-            this.PluginUi.SettingsVisible = true;
-        }
-    }
+		private void DrawConfigUI()
+		{
+			this.PluginUi.SettingsVisible = true;
+		}
+	}
 }

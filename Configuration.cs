@@ -1,6 +1,8 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace TradeBuddy
 {
@@ -13,7 +15,12 @@ namespace TradeBuddy
 
         public bool ShowTrade { get; set; } = true;
 
-        // the below exist just to make saving less cumbersome
+        public string tradeConfirmStr { get; set; } = "交易完成。";
+        public string tradeCancelStr { get; set; } = "交易取消。";
+
+        public Dictionary<string, int> preset = new Dictionary<string, int>() { };
+
+        #region Init and Save
 
         [NonSerialized]
         private DalamudPluginInterface? pluginInterface;
@@ -27,5 +34,7 @@ namespace TradeBuddy
         {
             this.pluginInterface!.SavePluginConfig(this);
         }
+
+        #endregion
     }
 }
