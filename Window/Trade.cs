@@ -15,7 +15,6 @@ namespace TradeBuddy
 	{
 		public class Item
 		{
-			public ImGuiScene.TextureWrap? image = null;
 			public long iconId;
 			public bool isHQ = false;
 			public string name { get; set; } = "";
@@ -24,29 +23,36 @@ namespace TradeBuddy
 			public int price { get; set; } = 0;
 		}
 		private static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private static float[] tableWidth = new float[] { 40, -1, 80, 300 };
+		private static float[] tableWidth = new float[] { 30, 500, 55, 120 };
 		private static int width = 480, height = 600, giveGil = 0, receiveGil = 0;
 		private static string tradeTarget = "";
 		public static Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
 		public static Item[] receiveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
 
 		public static OnMessageDelegate messageDelegate = (XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled) =>
-			{
-				if (Plugin.Instance.PluginUi.finalCheck && type == XivChatType.SystemMessage && !isHandled)
-				{
-					//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
-					//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
-					if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
-					{
-						DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易确认");
-						History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
-					}
-					else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
-					{
-						DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易取消");
-					}
-				}
-			};
+		  {
+			  try
+			  {
+				  if (Plugin.Instance.PluginUi.finalCheck && type == XivChatType.SystemMessage && !isHandled)
+				  {
+					  //Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
+					  //Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
+					  if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
+					  {
+						  if (Plugin.Instance.Configuration.PrintConfirmTrade) DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易成功");
+						  History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
+					  }
+					  else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
+					  {
+						  if (Plugin.Instance.Configuration.PrintCancelTrade) DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]交易取消");
+					  }
+				  }
+			  }
+			  catch (Exception ex)
+			  {
+				  DalamudDll.ChatGui.PrintError(ex.ToString());
+			  }
+		  };
 		public static unsafe void DrawTrade(bool tradeVisible, ref bool tradeOnceVisible, ref bool finalCheck, ref bool historyVisible, ref bool settingVisivle)
 		{
 			var tradeAddess = DalamudDll.GameGui.GetAddonByName("Trade", 1);
@@ -70,7 +76,7 @@ namespace TradeBuddy
 				var receiveMoney = trade->UldManager.NodeList[6]->GetAsAtkTextNode();
 				var receiveChecked = trade->UldManager.NodeList[31]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0]->GetAsAtkImageNode()->AtkResNode.ScaleY == 1;
 
-				AtkResNode*[] receiveArray = new AtkResNode*[]
+				AtkResNode*[] receiveResNode = new AtkResNode*[]
 				{
 					trade->UldManager.NodeList[19],
 					trade->UldManager.NodeList[18],
@@ -85,7 +91,7 @@ namespace TradeBuddy
 				//var giveItem1Pic = trade->UldManager.NodeList[30]->GetAsAtkComponentNode()->Component->UldManager.NodeList[2]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0]->GetAsAtkImageNode();
 				var giveChecked = trade->UldManager.NodeList[32]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0]->GetAsAtkImageNode()->AtkResNode.ScaleY == 1;
 
-				AtkResNode*[] giveArray = new AtkResNode*[]
+				AtkResNode*[] giveResNode = new AtkResNode*[]
 				{
 					trade->UldManager.NodeList[30]->GetAsAtkComponentNode()->Component->UldManager.NodeList[2],
 					trade->UldManager.NodeList[29]->GetAsAtkComponentNode()->Component->UldManager.NodeList[2],
@@ -137,7 +143,7 @@ namespace TradeBuddy
 
 				try
 				{
-					DrowTradeTable(header, giveArray, giveMoney, ref giveItem, ref giveGil);
+					DrowTradeTable(header, giveResNode, giveMoney, ref giveItem, ref giveGil);
 				}
 				catch (Exception e)
 				{
@@ -151,7 +157,15 @@ namespace TradeBuddy
 					ImGuiComponents.TextWithLabel(tradeTarget + " -->", "  已确认");
 				else
 					ImGuiComponents.TextWithLabel(tradeTarget + " -->", "");
-				DrowTradeTable(header, receiveArray, receiveMoney, ref receiveItem, ref receiveGil);
+				try
+				{
+					DrowTradeTable(header, receiveResNode, receiveMoney, ref receiveItem, ref receiveGil);
+				}
+				catch (Exception e)
+				{
+					DalamudDll.ChatGui.PrintError(e.ToString());
+				}
+
 				if (receiveChecked && giveChecked)//双方交易确认，进入最终确认状态
 				{
 					var selectYesno = DalamudDll.GameGui.GetAddonByName("SelectYesno", 1);
@@ -169,13 +183,9 @@ namespace TradeBuddy
 		//绘制交易物品表格
 		private static unsafe void DrowTradeTable(String[] headerText, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray, ref int gil)
 		{
-			AtkResNode* resNode;
-			long iconId;
-			int count;
-			string iconIdStr, itemName, countStr;
 
 			//绘制5个道具栏
-			ImGui.BeginTable("交易栏", headerText.Length, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH);
+			ImGui.BeginTable("交易栏", headerText.Length, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV);
 
 			for (int i = 0; i < headerText.Length; i++)
 			{
@@ -184,26 +194,28 @@ namespace TradeBuddy
 
 				// todo 最好能让拉伸的时候只拉伸第一列
 				if (tableWidth.Length > i && tableWidth[i] >= 0)
-					ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.None, tableWidth[i]);
-				else
-					ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.WidthStretch);
+					if (i == 1)
+						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.WidthStretch, tableWidth[i]);
+					else
+						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.None, tableWidth[i]);
+
 			}
 
 			for (int i = 0; i < atkResNodeList.Length; i++)
 			{
-				resNode = atkResNodeList[i];
-				iconId = ((AtkComponentIcon*)resNode->GetComponent())->IconId;
+				ImGui.TableNextRow(ImGuiTableRowFlags.None, tableWidth[0]);
+
 				// todo 测试数据
-				if (itemArray[i] == null)
-				{
-					DalamudDll.ChatGui.Print(i + "为null");
-					itemArray[i] = new Item();
-				}
+				if (itemArray[i] == null) itemArray[i] = new Item();
+
+				AtkResNode* resNode = atkResNodeList[i];
+				long iconId = ((AtkComponentIcon*)resNode->GetComponent())->IconId;
+
 				//放入交易格子中再取消时，iconId会残留为之前的数值
 				if (!resNode->IsVisible || iconId < 1)
 				{
 					itemArray[i].iconId = 0;
-					itemArray[i].image = null;
+					itemArray[i].isHQ = false;
 					itemArray[i].name = "";
 					itemArray[i].count = 0;
 					itemArray[i].price = 0;
@@ -214,88 +226,79 @@ namespace TradeBuddy
 					}
 					continue;
 				}
-				iconIdStr = Convert.ToString(iconId);
+
+				string iconIdStr = Convert.ToString(iconId);
 
 				//判断HQ，iconId以10开头的为HQ
 				if (iconIdStr.StartsWith("10"))
 				{
 					iconId = Convert.ToInt64(iconIdStr.Substring(2));
 
-					if (itemArray[i].iconId != iconId || !itemArray[i].isHQ)
-						itemArray[i].image = DalamudDll.DataManager.GetImGuiTextureHqIcon((uint)iconId);
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = true;
 				}
 				else
 				{
-					if (itemArray[i].iconId != iconId || itemArray[i].isHQ)
-						itemArray[i].image = DalamudDll.DataManager.GetImGuiTextureIcon((uint)iconId);
+					iconId = Convert.ToInt64(iconIdStr);
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = false;
 				}
-
-				var item1 = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
-				int priceType = 0;//0-默认， 1-设定HQ交易NQ， 2-设定NQ交易HQ
-				if (item1 != null)
+				var image = Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
+				var itemByIconId = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
+				//iconId反查item失败
+				if (itemByIconId == null)
 				{
-					// todo 加入物品图片
-					itemArray[i].name = item1.Name;
-					if (itemArray[i].isHQ) itemArray[i].name += "HQ";
-
-					ImGui.TableNextColumn();
-					if (itemArray[i].image != null) ImGui.Image(itemArray[i].image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
-					ImGui.TableNextColumn();
-					ImGui.Text(itemArray[i].name);
-
-					string presetPriceName = itemArray[i].name;
-					itemArray[i].price = 0;
-
-					if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name))
-						priceType = 0;
-					else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name[0..^2]))
-					{
-						priceType = 2;
-						presetPriceName = itemArray[i].name[0..^2];
-					}
-					else if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name + "HQ"))
-					{
-						priceType = 1;
-						presetPriceName = itemArray[i].name + "HQ";
-					}
-
-					foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetList)
-						if (presetPriceName == presetItem.name)
-						{
-							itemArray[i].price = presetItem.price;
-							break;
-						}
-				}
-				else
-				{
-					itemArray[i].name = "(获取失败)";
-					itemArray[i].image = null;
+					itemArray[i].name = "";
 					itemArray[i].iconId = 0;
 					itemArray[i].isHQ = false;
 					itemArray[i].count = 0;
 					itemArray[i].price = 0;
-					ImGui.TableNextColumn();
-					ImGui.Text("");
-					ImGui.TableNextColumn();
-					ImGui.Text("(获取失败)");
-					for (int j = 0; j < headerText.Length - 1; j++)
+					for (int j = 0; j < headerText.Length; j++)
 					{
 						ImGui.TableNextColumn();
-						ImGui.Text("");
+						ImGui.Text(iconId + "-" + iconIdStr);
 					}
 					continue;
 				}
 
-				countStr = resNode->GetAsAtkComponentNode()->Component->UldManager.NodeList[6]->GetAsAtkTextNode()->NodeText.ToString();
+				itemArray[i].name = itemByIconId.Name;
+				if (itemArray[i].isHQ) itemArray[i].name += "HQ";
+
+				ImGui.TableNextColumn();
+				if (image != null) ImGui.Image(image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
+				//ImGui.Text(iconId + "=" + iconIdStr);
+				ImGui.TableNextColumn();
+				ImGui.Text(itemArray[i].name);
+
+				string presetPriceName = itemArray[i].name;
+				itemArray[i].price = 0;
+				int priceType = 0;//0-默认， 1-设定HQ交易NQ， 2-设定NQ交易HQ
+				if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name))
+				{ }
+				else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name[0..^2]))
+				{
+					priceType = 2;
+					presetPriceName = itemArray[i].name[0..^2];
+				}
+				else if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name + "HQ"))
+				{
+					priceType = 1;
+					presetPriceName = itemArray[i].name + "HQ";
+				}
+
+				foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetList)
+					if (presetPriceName == presetItem.name)
+					{
+						itemArray[i].price = presetItem.price;
+						break;
+					}
+
+				int count;
+				string countStr = ((AtkComponentIcon*)resNode->GetComponent())->QuantityText->NodeText.ToString().Replace(",", "").Trim();
 				if (countStr == null || countStr.Length == 0)
 					count = 1;
 				else
-					count = Convert.ToInt32("0" + countStr);
-
+					count = Convert.ToInt32("0" + countStr.Replace(",", string.Empty));
 
 				itemArray[i].count = count;
 				ImGui.TableNextColumn();
@@ -312,7 +315,8 @@ namespace TradeBuddy
 			}
 
 			ImGui.TableNextColumn();
-			ImGuiScene.TextureWrap? gilImage = DalamudDll.DataManager.GetImGuiTextureIcon(65002);
+
+			ImGuiScene.TextureWrap? gilImage = Configuration.getIcon(65002, false);
 			if (gilImage != null) ImGui.Image(gilImage.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 			ImGui.TableNextColumn();
@@ -322,7 +326,7 @@ namespace TradeBuddy
 			ImGui.Text(gilTextNode->NodeText.ToString());
 
 			//DalamudDll.ChatGui.PrintError("gilTextNode<" + gilTextNode->NodeText + ">");
-			gil = Convert.ToInt32(("0" + gilTextNode->NodeText.ToString()).Replace(" ", String.Empty).Replace(",", String.Empty).Trim());
+			gil = Convert.ToInt32("0" + gilTextNode->NodeText.ToString().Replace(",", String.Empty).Trim());
 			//gil = -1;
 
 			int sum = 0;
@@ -337,7 +341,5 @@ namespace TradeBuddy
 			if (ImGui.IsItemClicked()) ImGui.SetTooltip(String.Format("{0:0,0}", sum).TrimStart('0'));
 			ImGui.EndTable();
 		}
-
-
 	}
 }

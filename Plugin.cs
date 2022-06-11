@@ -1,8 +1,4 @@
-﻿using Dalamud.Data;
-using Dalamud.Game.ClientState;
-using Dalamud.Game.Command;
-using Dalamud.Game.Gui;
-using Dalamud.Game.Network;
+﻿using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using System.IO;

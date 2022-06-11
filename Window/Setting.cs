@@ -58,16 +58,16 @@ namespace TradeBuddy.Window
 						ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.None, 50);
 						*/
 						List<PresetItem> keyList = new List<PresetItem>();
-						foreach(PresetItem item in Plugin.Instance.Configuration.presetList)
+						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
 						{
-							keyList.Add(new PresetItem() { name = item.name, price = item.price});
+							keyList.Add(new PresetItem() { name = item.name, price = item.price });
 						}
 						for (int i = 0; i < keyList.Count; i++)
 						{
 							//DalamudDll.ChatGui.Print(key);
 							//ImGui.TableNextColumn();
 							string name = new(keyList[i].name);
-							string count =  Convert.ToString(keyList[i].price);
+							string count = Convert.ToString(keyList[i].price);
 							if (ImGui.InputText("道具名-" + (i + 1), ref name, 256, ImGuiInputTextFlags.CharsNoBlank))
 							{
 								Plugin.Instance.Configuration.presetList[i].name = name;
@@ -75,15 +75,25 @@ namespace TradeBuddy.Window
 								Plugin.Instance.Configuration.RefreshKeySet();
 							}
 
-							//ImGui.TableNextColumn();
 							if (ImGui.InputText("金额-" + (i + 1), ref count, 256, ImGuiInputTextFlags.CharsDecimal))
 							{
-								Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count);
-								//DalamudDll.ChatGui.Print("输入：" + change);
+								try
+								{
+									Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count);
+								}
+								catch (FormatException)
+								{
+									try
+									{
+										Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count.Replace("-", string.Empty).Replace(",", string.Empty));
+									}
+									catch (FormatException) {
+										Plugin.Instance.Configuration.presetList[i].price = 0;
+									}
+								}
 								Plugin.Instance.Configuration.Save();
 							}
 
-							//ImGui.TableNextColumn();
 							if (ImGuiComponents.IconButton(i, Dalamud.Interface.FontAwesomeIcon.Trash))
 							{
 								Plugin.Instance.Configuration.presetList.RemoveAt(i);
@@ -93,7 +103,6 @@ namespace TradeBuddy.Window
 							}
 							ImGui.Spacing();
 						}
-						//ImGui.EndTable();
 					}
 
 					if (ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.Plus) && !Plugin.Instance.Configuration.presetItem.ContainsKey(""))

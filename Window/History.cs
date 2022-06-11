@@ -42,61 +42,58 @@ namespace TradeBuddy.Window
 				string[] giveItemStr = strArray[3].Split(',');
 				string[] receiveItemStr = strArray[5].Split(',');
 
-				tradeHistory.giveItemArray = new Item[giveItemStr.Length];
-				tradeHistory.receiveItemArray = new Item[receiveItemStr.Length];
+				List<Item> giveList = new List<Item>(), receiveList = new List<Item>();
 
-				string[] itemStr;
 				for (int i = 0; i < giveItemStr.Length; i++)
 				{
-					itemStr = giveItemStr[i].Split('x');
+					string[] itemStr = giveItemStr[i].Split('x');
 					if (itemStr.Length == 2)
 					{
-						tradeHistory.giveItemArray[i].name = itemStr[0];
-						tradeHistory.giveItemArray[i].count = Convert.ToInt32(itemStr[1]);
-					}
-					else
-					{
-						tradeHistory.giveItemArray[i].name = "(获取失败)";
-						tradeHistory.giveItemArray[i].count = 0;
+						Item item = new Item()
+						{
+							name = itemStr[0],
+							count = Convert.ToInt32(itemStr[1])
+						};
+						giveList.Add(item);
 					}
 				}
+				tradeHistory.giveItemArray = giveList.ToArray();
 
 				for (int i = 0; i < receiveItemStr.Length; i++)
 				{
-					itemStr = receiveItemStr[i].Split('x');
+					string[] itemStr = receiveItemStr[i].Split('x');
 					if (itemStr.Length == 2)
 					{
-						tradeHistory.receiveItemArray[i].name = itemStr[0];
-						tradeHistory.receiveItemArray[i].count = Convert.ToInt32(itemStr[1]);
-					}
-					else
-					{
-						tradeHistory.receiveItemArray[i].name = "(获取失败)";
-						tradeHistory.receiveItemArray[i].count = 0;
+						Item item = new Item()
+						{
+							name = itemStr[0],
+							count = Convert.ToInt32(itemStr[1])
+						};
+						receiveList.Add(item);
 					}
 				}
+				tradeHistory.receiveItemArray = receiveList.ToArray();
 
 				return tradeHistory;
 			}
 			public override string ToString()
 			{
-				DalamudDll.ChatGui.Print("tostring：" + time + "：" + targetName);
 				string[] write = new string[5];
 				write[0] = targetName;
 				write[1] = Convert.ToString(giveGil);
 				write[2] = "";
-				foreach (Item item in giveItemArray)
-					if (item.count > 0) write[2] += item.name + "x" + item.count + ',';
+
+				foreach (Item item in giveItemArray) write[2] += item.name + "x" + item.count + ',';
+
 				write[2] = write[2].TrimEnd(',');
 				write[3] = Convert.ToString(receiveGil);
 				write[4] = "";
-				foreach (Item item in receiveItemArray)
-					if (item.count > 0) write[4] += item.name + "x" + item.count + ',';
+
+				foreach (Item item in receiveItemArray) write[4] += item.name + "x" + item.count + ',';
 				write[4] = write[4].TrimEnd(',');
 
 				StringBuilder output = new StringBuilder(time);
-				foreach (string item in write)
-					output = output.Append(partSplitChar).Append(item);
+				foreach (string item in write) output = output.Append(partSplitChar).Append(item);
 				return output.ToString();
 			}
 		}
@@ -115,11 +112,13 @@ namespace TradeBuddy.Window
 				using (FileStream stream = File.Open(path, FileMode.OpenOrCreate))
 				{
 					StreamReader reader = new StreamReader(stream);
-					tradeStr = reader.ReadLine() ?? "";
-					if (tradeStr.Split(';').Length > 0)
+					while ((tradeStr = reader.ReadLine() ?? "").Length > 0)
 					{
-						TradeHistory? trade = TradeHistory.parseFromString(tradeStr);
-						if (trade != null && trade.time.Length > 0) tradeHistoryList.Add(trade);
+						if (tradeStr.Split(';').Length > 1)
+						{
+							TradeHistory? trade = TradeHistory.parseFromString(tradeStr);
+							if (trade != null && trade.time.Length > 0) tradeHistoryList.Add(trade);
+						}
 					}
 				}
 				refresh = false;
@@ -133,29 +132,29 @@ namespace TradeBuddy.Window
 					StringBuilder title = new StringBuilder(trade.time);
 					title = title.Append(": ").Append(trade.targetName);
 					if (trade.giveGil > 0) title = title.Append("  <--").Append(trade.giveGil);
-					if (trade.receiveGil > 0) title = title.Append("  -->").Append(trade.receiveGil);
-					if (ImGui.TreeNode(title.ToString()))
+					if (trade.receiveGil > 0) title = title.Append(' ', 40).Append("  -->").Append(trade.receiveGil);
+					if (ImGui.CollapsingHeader(title.ToString()))
 					{
-						//ImGui.Indent();
-						if (ImGui.BeginTable("histroy", 2))
+						if (ImGui.BeginTable("histroy", 2, ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
 						{
 							for (int i = 0; i < 5; i++)
 							{
+								if (trade.giveItemArray.Length <= i && trade.receiveItemArray.Length <= i) break;
+
 								ImGui.TableNextColumn();
 
 								ImGui.Bullet();
 								ImGui.SameLine();
-								if (trade.giveItemArray.Length <= i && trade.receiveItemArray.Length <= i) break;
+
 								if (trade.giveItemArray.Length > i) ImGui.Text(trade.giveItemArray[i].name + " x " + trade.giveItemArray[i].count);
 								else ImGui.Text("");
 
-								ImGui.SameLine();
+								ImGui.TableNextColumn();
 								if (trade.receiveItemArray.Length > i) ImGui.Text(trade.receiveItemArray[i].name + " x " + trade.receiveItemArray[i].count);
 								else ImGui.Text("");
 							}
 							ImGui.EndTable();
 						}
-						//ImGui.Unindent();
 					}
 				}
 			}
@@ -165,8 +164,6 @@ namespace TradeBuddy.Window
 		{
 			string playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			string playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
-
-			DalamudDll.ChatGui.Print("开始记录交易-" + giveGil + "-" + receiveGil);
 
 			TradeHistory tradeHistory = new TradeHistory(DateTime.Now.ToString(TradeHistory.TimeFormatStr), targetName)
 			{
@@ -178,26 +175,34 @@ namespace TradeBuddy.Window
 			for (int i = 0; i < giveItemArray.Length; i++)
 			{
 				if (giveItemArray[i] != null && giveItemArray[i].count > 0)
-					giveItemList.Add(new TradeHistory.Item() { name = giveItemArray[i].name, count = giveItemArray[i].count });
+					giveItemList.Add(new TradeHistory.Item()
+					{
+						name = giveItemArray[i].name,
+						count = giveItemArray[i].count
+					});
 			}
-			for (int i = 0; i < giveItemArray.Length; i++)
+			for (int i = 0; i < receiveItemArray.Length; i++)
 			{
 				if (receiveItemArray[i] != null && receiveItemArray[i].count > 0)
-					receiveItemList.Add(new TradeHistory.Item() { name = receiveItemArray[i].name, count = receiveItemArray[i].count });
+					receiveItemList.Add(new TradeHistory.Item()
+					{
+						name = receiveItemArray[i].name,
+						count = receiveItemArray[i].count
+					});
 			}
 
 			tradeHistory.giveItemArray = giveItemList.ToArray();
 			tradeHistory.receiveItemArray = receiveItemList.ToArray();
-
-
-			tradeHistoryList.Add(tradeHistory);
+						
 			string path = Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
 			using (FileStream stream = File.Open(path, FileMode.OpenOrCreate))
 			{
 				stream.Position = stream.Length;
 				StreamWriter writer = new StreamWriter(stream);
 				writer.WriteLine(tradeHistory.ToString());
+				writer.Flush();
 			}
+			refresh = true;
 		}
 	}
 }
