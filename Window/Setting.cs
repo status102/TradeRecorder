@@ -9,6 +9,7 @@ namespace TradeBuddy.Window
 {
 	public class Setting
 	{
+		private static int editIndex = -1;
 		public static void DrawSetting(ref bool settingVisible)
 		{
 			if (!settingVisible) return;
@@ -40,82 +41,108 @@ namespace TradeBuddy.Window
 					}
 					ImGui.Unindent();
 				}
-				if (ImGui.CollapsingHeader("预期"))
+				if (ImGui.CollapsingHeader("预设价格"))
 				{
-					//if (ImGui.BeginTable("预期", 3, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerH))
+					List<PresetItem> keyList = new List<PresetItem>();
+					foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
 					{
-						/*
+						keyList.Add(new PresetItem() { name = item.name, price = item.price });
+					}
+
+					if (ImGui.BeginTable("预期", 4, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerH))
+					{
+						ImGui.TableNextColumn();
+						ImGui.TableHeader("");
+						ImGui.TableSetupColumn("图片", ImGuiTableColumnFlags.WidthStretch, 35);
+
 						ImGui.TableNextColumn();
 						ImGui.TableHeader("物品名");
 						ImGui.TableSetupColumn("物品名", ImGuiTableColumnFlags.WidthStretch);
 
 						ImGui.TableNextColumn();
-						ImGui.TableHeader("数量");
-						ImGui.TableSetupColumn("数量", ImGuiTableColumnFlags.None);
+						ImGui.TableHeader("价格");
+						ImGui.TableSetupColumn("价格", ImGuiTableColumnFlags.None);
 
 						ImGui.TableNextColumn();
 						ImGui.TableHeader(" ");
-						ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.None, 50);
-						*/
-						List<PresetItem> keyList = new List<PresetItem>();
-						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
-						{
-							keyList.Add(new PresetItem() { name = item.name, price = item.price });
-						}
+						ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.None);
+
 						for (int i = 0; i < keyList.Count; i++)
 						{
 							//DalamudDll.ChatGui.Print(key);
-							//ImGui.TableNextColumn();
-							string name = new(keyList[i].name);
-							string count = Convert.ToString(keyList[i].price);
-							if (ImGui.InputText("道具名-" + (i + 1), ref name, 256, ImGuiInputTextFlags.CharsNoBlank))
-							{
-								if (Plugin.Instance.Configuration.presetItem.ContainsKey(name))
-								{
-									Plugin.Instance.Configuration.presetList[i].name = name + "1";
-								}
-								else
-									Plugin.Instance.Configuration.presetList[i].name = name;
-								Plugin.Instance.Configuration.Save();
-								Plugin.Instance.Configuration.RefreshKeySet();
-							}
+							ImGui.TableNextRow(ImGuiTableRowFlags.None, 35);
 
-							if (ImGui.InputText("金额-" + (i + 1), ref count, 256, ImGuiInputTextFlags.CharsDecimal))
-							{
-								try
-								{
-									Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count);
-								}
-								catch (FormatException)
-								{
-									try
-									{
-										Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count.Replace("-", string.Empty).Replace(",", string.Empty));
-									}
-									catch (FormatException)
-									{
-										Plugin.Instance.Configuration.presetList[i].price = 0;
-									}
-								}
-								Plugin.Instance.Configuration.Save();
-							}
+							ImGui.TableNextColumn();
 
-							if (ImGuiComponents.IconButton(i, Dalamud.Interface.FontAwesomeIcon.Trash))
+							ImGui.TableNextColumn();
+							ImGui.Text(keyList[i].name);
+
+							ImGui.TableNextColumn();
+							ImGui.Text(Convert.ToString(keyList[i].price));
+
+							ImGui.TableNextColumn();
+							if (ImGuiComponents.IconButton(i, Dalamud.Interface.FontAwesomeIcon.Pen))
+								editIndex = i;
+							ImGui.SameLine();
+							if (ImGuiComponents.IconButton(-i, Dalamud.Interface.FontAwesomeIcon.Trash))
 							{
 								Plugin.Instance.Configuration.presetList.RemoveAt(i);
 								Plugin.Instance.Configuration.Save();
 								Plugin.Instance.Configuration.RefreshKeySet();
-
 							}
-							ImGui.Spacing();
 						}
+						ImGui.EndTable();
 					}
 
 					if (ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.Plus) && !Plugin.Instance.Configuration.presetItem.ContainsKey(""))
 					{
 						Plugin.Instance.Configuration.presetList.Add(new PresetItem());
 						Plugin.Instance.Configuration.RefreshKeySet();
+						editIndex = keyList.Count - 1;
 					}
+					if (editIndex != -1 && editIndex < keyList.Count)
+					{
+						ImGui.SameLine();
+						if (ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.Check))
+							editIndex = -1;
+
+
+						string name = new(keyList[editIndex].name);
+						string count = Convert.ToString(keyList[editIndex].price);
+						if (ImGui.InputText("名字", ref name, 256, ImGuiInputTextFlags.CharsNoBlank))
+						{
+							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name))
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
+							}
+							else
+								Plugin.Instance.Configuration.presetList[editIndex].name = name;
+							Plugin.Instance.Configuration.Save();
+							Plugin.Instance.Configuration.RefreshKeySet();
+						}
+
+						if (ImGui.InputText("价格", ref count, 256, ImGuiInputTextFlags.CharsDecimal))
+						{
+							try
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + count);
+							}
+							catch (FormatException)
+							{
+								try
+								{
+									Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + count.Replace("-", string.Empty).Replace(",", string.Empty));
+								}
+								catch (FormatException)
+								{
+									Plugin.Instance.Configuration.presetList[editIndex].price = 0;
+								}
+							}
+							Plugin.Instance.Configuration.Save();
+						}
+
+					}
+
 				}
 
 			}
