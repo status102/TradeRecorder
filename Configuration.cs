@@ -12,11 +12,11 @@ namespace TradeBuddy
 		public int Version { get; set; } = 0;
 
 		public bool ShowTrade { get; set; } = true;
-		public  bool PrintConfirmTrade { get; set; } = false;
-		public  bool PrintCancelTrade { get; set; } = true;
+		public bool PrintConfirmTrade { get; set; } = false;
+		public bool PrintCancelTrade { get; set; } = true;
 
-		public  string tradeConfirmStr { get; set; } = "交易完成。";
-		public  string tradeCancelStr { get; set; } = "交易取消。";
+		public string tradeConfirmStr { get; set; } = "交易完成。";
+		public string tradeCancelStr { get; set; } = "交易取消。";
 
 		public List<PresetItem> presetList = new List<PresetItem>();
 
@@ -34,12 +34,12 @@ namespace TradeBuddy
 
 		public static TextureWrap? getIcon(uint iconId, bool isHq)
 		{
-			if(!isHq && iconList.ContainsKey(iconId))return iconList[iconId];
+			if (!isHq && iconList.ContainsKey(iconId)) return iconList[iconId];
 			if (isHq && hqiconList.ContainsKey(iconId)) return hqiconList[iconId];
 			TextureWrap? icon = isHq ?
 				DalamudDll.DataManager.GetImGuiTextureHqIcon(iconId) :
 				DalamudDll.DataManager.GetImGuiTextureIcon(iconId);
-			if(isHq)
+			if (isHq)
 				hqiconList.Add(iconId, icon);
 			else
 				iconList.Add(iconId, icon);

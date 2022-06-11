@@ -70,7 +70,12 @@ namespace TradeBuddy.Window
 							string count = Convert.ToString(keyList[i].price);
 							if (ImGui.InputText("道具名-" + (i + 1), ref name, 256, ImGuiInputTextFlags.CharsNoBlank))
 							{
-								Plugin.Instance.Configuration.presetList[i].name = name;
+								if (Plugin.Instance.Configuration.presetItem.ContainsKey(name))
+								{
+									Plugin.Instance.Configuration.presetList[i].name = name + "1";
+								}
+								else
+									Plugin.Instance.Configuration.presetList[i].name = name;
 								Plugin.Instance.Configuration.Save();
 								Plugin.Instance.Configuration.RefreshKeySet();
 							}
@@ -87,7 +92,8 @@ namespace TradeBuddy.Window
 									{
 										Plugin.Instance.Configuration.presetList[i].price = Convert.ToInt32("0" + count.Replace("-", string.Empty).Replace(",", string.Empty));
 									}
-									catch (FormatException) {
+									catch (FormatException)
+									{
 										Plugin.Instance.Configuration.presetList[i].price = 0;
 									}
 								}
