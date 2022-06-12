@@ -181,10 +181,15 @@ namespace TradeBuddy.Window
 						ImGui.SameLine();
 						if (ImGuiComponents.IconButton(FontAwesomeIcon.Check) && !string.IsNullOrEmpty(name))
 						{
-							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex == Plugin.Instance.Configuration.presetItem[name])
-								Plugin.Instance.Configuration.presetList[editIndex].name = name;
-							else
+							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
+							{
 								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
+								DalamudDll.ChatGui.Print(editIndex + "-" + Plugin.Instance.Configuration.presetItem[name]);
+							}
+							else
+									Plugin.Instance.Configuration.presetList[editIndex].name = name;
+							
+								
 							try
 							{
 								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));

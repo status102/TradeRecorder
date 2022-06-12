@@ -22,7 +22,7 @@ namespace TradeBuddy
 			public int price { get; set; } = 0;
 		}
 		private static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private static float[] tableWidth = new float[] { 20, -1, 55, 120 };
+		private static float[] tableWidth = new float[] { 20, -1, 85, 120 };
 		private static int width = 480, height = 600, giveGil = 0, receiveGil = 0;
 		private static string tradeTarget = "";
 		public static Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
