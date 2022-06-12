@@ -184,7 +184,7 @@ namespace TradeBuddy.Window
 						refresh = true;
 					}
 					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("导出");
+						ImGui.SetTooltip("导出到剪贴板");
 
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Download))
@@ -224,7 +224,7 @@ namespace TradeBuddy.Window
 						refresh = true;
 					}
 					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("导入");
+						ImGui.SetTooltip("从剪贴板导入");
 
 
 

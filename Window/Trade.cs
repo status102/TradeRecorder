@@ -197,7 +197,6 @@ namespace TradeBuddy
 			{
 				ImGui.TableNextRow(ImGuiTableRowFlags.None, tableWidth[0]);
 
-				// todo 测试数据
 				if (itemArray[i] == null) itemArray[i] = new Item();
 
 				AtkResNode* resNode = atkResNodeList[i];
@@ -328,7 +327,7 @@ namespace TradeBuddy
 			sum += gil;
 			ImGui.Text(String.Format("{0:0,0}", sum).TrimStart('0'));
 			if (ImGui.IsItemHovered()) ImGui.SetTooltip("包含金币在内的全部金额");
-			if (ImGui.IsItemClicked()) ImGui.SetTooltip(String.Format("{0:0,0}", sum).TrimStart('0'));
+			if (ImGui.IsItemClicked()) ImGui.SetClipboardText(String.Format("{0:0,0}", sum).TrimStart('0'));
 			ImGui.EndTable();
 		}
 	}
