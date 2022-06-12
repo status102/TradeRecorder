@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using static TradeBuddy.Configuration;
 
 namespace TradeBuddy.Window
@@ -61,21 +62,20 @@ namespace TradeBuddy.Window
 						keyList.Clear();
 						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
 						{
-
+							DalamudDll.ChatGui.Print("refresh：" + item.name);
 							if (item.iconId == -1 && item.name.Length > 0)
 							{
 								item.isHQ = item.name.EndsWith("HQ");
-								if (item.isHQ) item.name = item.name.Substring(0, item.name.Length - 2);
-								var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == item.name);
+								if (item.isHQ) name = item.name.Substring(0, item.name.Length - 2);
+								else name  = item.name;
+								var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
 
 								if (itemByName == null)
 									item.iconId = 0;
 								else
 									item.iconId = itemByName.Icon;
-
 							}
 							keyList.Add(new PresetItem() { name = item.name, price = item.price, isHQ = item.isHQ, iconId = item.iconId });
-
 						}
 						refresh = false;
 					}
@@ -91,11 +91,9 @@ namespace TradeBuddy.Window
 
 						for (int i = 0; i < keyList.Count; i++)
 						{
-							//if (string.IsNullOrEmpty(keyList[i].name)) continue;
 							ImGui.TableNextRow(ImGuiTableRowFlags.None, 35);
 
 							ImGui.TableNextColumn();
-
 							if (keyList[i].iconId > 0)
 							{
 								TextureWrap? texture = Configuration.getIcon((uint)keyList[i].iconId, keyList[i].isHQ);
@@ -174,6 +172,62 @@ namespace TradeBuddy.Window
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("删除所有项目");
 
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.Upload))
+					{
+						StringBuilder stringBuilder = new StringBuilder();
+						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
+							stringBuilder.Append(item.name).Append(',').Append(item.price).Append('\n');
+						ImGui.SetClipboardText(stringBuilder.ToString());
+						Plugin.Instance.Configuration.Save();
+						Plugin.Instance.Configuration.RefreshKeySet();
+						refresh = true;
+					}
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip("导出");
+
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.Download))
+					{
+						try
+						{
+							string clipboard = ImGui.GetClipboardText().Trim();
+							string[] strLine = clipboard.Split('\n'), str;
+							int price = 0;
+							foreach (string line in strLine)
+							{
+								if (line != null && line.Length > 0)
+								{
+									str = line.Replace("\r", "").Replace("\t", "").Trim().Split(',');
+									if (str.Length == 2)
+									{
+										try
+										{
+											price = int.Parse(str[1]);
+										}
+										catch (FormatException)
+										{
+											price = 0;
+										}
+										Plugin.Instance.Configuration.presetList.Add(new PresetItem() { name = str[0], price = price });
+									}
+
+								}
+							}
+						}
+						catch (NullReferenceException)
+						{
+							DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]导入失败");
+						}
+						Plugin.Instance.Configuration.Save();
+						Plugin.Instance.Configuration.RefreshKeySet();
+						refresh = true;
+					}
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip("导入");
+
+
+
 					//添加or编辑预设中
 					if (editIndex != -1 && editIndex < keyList.Count)
 					{
@@ -187,9 +241,8 @@ namespace TradeBuddy.Window
 								DalamudDll.ChatGui.Print(editIndex + "-" + Plugin.Instance.Configuration.presetItem[name]);
 							}
 							else
-									Plugin.Instance.Configuration.presetList[editIndex].name = name;
-							
-								
+								Plugin.Instance.Configuration.presetList[editIndex].name = name;
+
 							try
 							{
 								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
