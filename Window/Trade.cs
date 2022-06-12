@@ -235,7 +235,7 @@ namespace TradeBuddy
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = false;
 				}
-				var image = Plugin.Instance.Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
+				var image = Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
 				var itemByIconId = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
 				//iconId反查item失败
 				if (itemByIconId == null)
@@ -308,7 +308,7 @@ namespace TradeBuddy
 
 			ImGui.TableNextColumn();
 
-			ImGuiScene.TextureWrap? gilImage = Plugin.Instance.Configuration.getIcon(65002, false);
+			ImGuiScene.TextureWrap? gilImage = Configuration.getIcon(65002, false);
 			if (gilImage != null) ImGui.Image(gilImage.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 			ImGui.TableNextColumn();

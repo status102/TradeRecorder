@@ -23,16 +23,20 @@ namespace TradeBuddy
 		[NonSerialized]
 		public Dictionary<string, int> presetItem = new Dictionary<string, int>();
 		[NonSerialized]
-		public Dictionary<uint, TextureWrap?> iconList = new Dictionary<uint, TextureWrap?>();
+		public static Dictionary<uint, TextureWrap?> iconList = new Dictionary<uint, TextureWrap?>();
 		[NonSerialized]
-		public Dictionary<uint, TextureWrap?> hqiconList = new Dictionary<uint, TextureWrap?>();
+		public static Dictionary<uint, TextureWrap?> hqiconList = new Dictionary<uint, TextureWrap?>();
 		public class PresetItem
 		{
+			[NonSerialized]
+			public int iconId = -1; // -1未初始化 0未找到
+			[NonSerialized]
+			public bool isHQ = false;// 仅用作加载icon
 			public int price;
 			public string name = "";
 		}
 
-		public TextureWrap? getIcon(uint iconId, bool isHq)
+		public static TextureWrap? getIcon(uint iconId, bool isHq)
 		{
 			if (!isHq && iconList.ContainsKey(iconId)) return iconList[iconId];
 			if (isHq && hqiconList.ContainsKey(iconId)) return hqiconList[iconId];
