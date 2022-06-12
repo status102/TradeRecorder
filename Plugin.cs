@@ -11,14 +11,14 @@ namespace TradeBuddy
 		public string Name => "Trade Buddy";
 
 		private const string commandName = "/tb";
+		public static Plugin Instance { get; private set; }
 
 		public DalamudPluginInterface PluginInterface { get; init; }
 		public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
-		public History History { get; init; }
 		public PluginUI PluginUi { get; init; }
-
-		public static Plugin Instance { get; private set; }
+		public History History { get; init; }
+		public Setting Setting { get; init; }
 
 		public Plugin(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -29,6 +29,7 @@ namespace TradeBuddy
 			this.PluginInterface = pluginInterface;
 			this.CommandManager = commandManager;
 			History = new History();
+			Setting = new Setting();
 
 			DalamudDll.DalamudInitialize(pluginInterface);
 			this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();

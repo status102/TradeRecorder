@@ -68,7 +68,7 @@ namespace TradeBuddy
 			presetItem.Clear();
 			PresetItem[] list = presetList.ToArray();
 			for (int i = 0; i < list.Length; i++)
-				presetItem.Add(list[i].name, i);
+				if(!presetItem.ContainsKey(list[i].name)) presetItem.Add(list[i].name, i);
 		}
 
 		public void Save()

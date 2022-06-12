@@ -6,7 +6,6 @@ using ImGuiNET;
 using System;
 using System.Linq;
 using System.Numerics;
-using TradeBuddy.Window;
 using static Dalamud.Game.Gui.ChatGui;
 
 namespace TradeBuddy
@@ -43,9 +42,7 @@ namespace TradeBuddy
 						  Plugin.Instance.History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
 					  }
 					  else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
-					  {
 						  if (Plugin.Instance.Configuration.PrintCancelTrade) DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]交易取消");
-					  }
 				  }
 			  }
 			  catch (Exception ex)
@@ -261,7 +258,7 @@ namespace TradeBuddy
 
 				ImGui.TableNextColumn();
 				if (image != null) ImGui.Image(image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
-				
+
 				ImGui.TableNextColumn();
 				ImGui.Text(itemArray[i].name);
 

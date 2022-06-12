@@ -55,7 +55,7 @@ namespace TradeBuddy
 			// There are other ways to do this, but it is generally best to keep the number of
 			// draw delegates as low as possible.
 
-			Setting.DrawSetting(ref settingsVisible);
+			Plugin.Instance.Setting.DrawSetting(ref settingsVisible);
 			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
 			Plugin.Instance.History.DrawHistory(ref historyVisible);
 		}
