@@ -9,9 +9,9 @@ namespace TradeBuddy.Window
 {
 	public class History
 	{
-		private static bool refresh = true;
-		private static List<TradeHistory> tradeHistoryList = new List<TradeHistory>();
-		private static string playerName, playerWorld;
+		private bool refresh = true;
+		private List<TradeHistory> tradeHistoryList = new List<TradeHistory>();
+		private string playerName, playerWorld;
 
 		public class TradeHistory
 		{
@@ -101,12 +101,13 @@ namespace TradeBuddy.Window
 			}
 		}
 
-		public static void DrawHistory(ref bool historyVisible)
+		public void DrawHistory(ref bool historyVisible)
 		{
+			if (!historyVisible) return;
+
 			playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
-			if (!historyVisible) return;
 			if (refresh)
 			{
 				tradeHistoryList.Clear();
@@ -128,11 +129,10 @@ namespace TradeBuddy.Window
 				}
 				refresh = false;
 			}
-			ImGui.SetNextWindowSize(new Vector2(320, 300), ImGuiCond.FirstUseEver);
-			if (ImGui.Begin("历史记录", ref historyVisible))
+			ImGui.SetNextWindowSize(new Vector2(480, 600), ImGuiCond.FirstUseEver);
+			if (ImGui.Begin("交易历史记录", ref historyVisible))
 			{
-				if (ImGui.Button("全部清除"))
-					using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
+				if (ImGui.Button("全部清除")) using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
 					{
 						StreamWriter writer = new StreamWriter(stream);
 						writer.Flush();
@@ -142,9 +142,9 @@ namespace TradeBuddy.Window
 				for (int index = 0; index < tradeHistoryList.Count; index++)
 				{
 					TradeHistory trade = tradeHistoryList[index];
-					if (trade.time.Length == 0) continue;
+					if (trade == null || trade.time.Length == 0) continue;
 					StringBuilder title = new StringBuilder();
-					title = title.Append(index).Append(":  <").Append(trade.time).Append(">  ").Append(trade.targetName);
+					title = title.Append(index + 1).Append(":  ").Append(trade.time).Append("  <").Append(trade.targetName).Append('>');
 					if (trade.giveGil > 0) title = title.Append("  <--").Append(trade.giveGil);
 					if (trade.receiveGil > 0) title = title.Append(' ', 40).Append("  -->").Append(trade.receiveGil);
 					if (ImGui.CollapsingHeader(title.ToString(), ref trade.visible))
@@ -153,11 +153,8 @@ namespace TradeBuddy.Window
 						{
 							for (int i = 0; i < Math.Max(trade.giveItemArray.Length, trade.receiveItemArray.Length); i++)
 							{
-								//if (trade.giveItemArray.Length <= i && trade.receiveItemArray.Length <= i) break;
-
 								ImGui.TableNextColumn();
 
-								ImGui.Bullet();
 								ImGui.SameLine();
 
 								if (trade.giveItemArray.Length > i) ImGui.Text(trade.giveItemArray[i].name + " x " + trade.giveItemArray[i].count);
@@ -170,6 +167,7 @@ namespace TradeBuddy.Window
 							ImGui.EndTable();
 						}
 					}
+					//删除记录
 					if (!trade.visible)
 					{
 						using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
@@ -185,7 +183,7 @@ namespace TradeBuddy.Window
 			}
 		}
 
-		public static void PushTradeHistory(string targetName, int giveGil, Trade.Item[] giveItemArray, int receiveGil, Trade.Item[] receiveItemArray)
+		public void PushTradeHistory(string targetName, int giveGil, Trade.Item[] giveItemArray, int receiveGil, Trade.Item[] receiveItemArray)
 		{
 			playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
@@ -219,8 +217,7 @@ namespace TradeBuddy.Window
 			tradeHistory.giveItemArray = giveItemList.ToArray();
 			tradeHistory.receiveItemArray = receiveItemList.ToArray();
 
-
-			using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.OpenOrCreate))
+			using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append))
 			{
 				StreamWriter writer = new StreamWriter(stream);
 				writer.WriteLine(tradeHistory.ToString());

@@ -41,7 +41,7 @@ namespace TradeBuddy.Window
 					}
 					ImGui.Unindent();
 				}
-				if (ImGui.CollapsingHeader("预设价格"))
+				//if (ImGui.CollapsingHeader("预设价格"))
 				{
 					List<PresetItem> keyList = new List<PresetItem>();
 					foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
@@ -49,28 +49,21 @@ namespace TradeBuddy.Window
 						keyList.Add(new PresetItem() { name = item.name, price = item.price });
 					}
 
-					if (ImGui.BeginTable("预期", 4, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerH))
+					if (ImGui.BeginTable("预期", 4, /*ImGuiTableFlags.Resizable |*/ ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.RowBg))
 					{
-						ImGui.TableNextColumn();
-						ImGui.TableHeader("");
-						ImGui.TableSetupColumn("图片", ImGuiTableColumnFlags.WidthStretch, 35);
+						//ImGui.TableNextColumn();
 
-						ImGui.TableNextColumn();
-						ImGui.TableHeader("物品名");
+						ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25f);
 						ImGui.TableSetupColumn("物品名", ImGuiTableColumnFlags.WidthStretch);
+						ImGui.TableSetupColumn("价格", ImGuiTableColumnFlags.WidthFixed, 60f);
+						ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthFixed, 80f);
 
-						ImGui.TableNextColumn();
-						ImGui.TableHeader("价格");
-						ImGui.TableSetupColumn("价格", ImGuiTableColumnFlags.None);
-
-						ImGui.TableNextColumn();
-						ImGui.TableHeader(" ");
-						ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.None);
+						ImGui.TableHeadersRow();
 
 						for (int i = 0; i < keyList.Count; i++)
 						{
 							//DalamudDll.ChatGui.Print(key);
-							ImGui.TableNextRow(ImGuiTableRowFlags.None, 35);
+							ImGui.TableNextRow();
 
 							ImGui.TableNextColumn();
 
@@ -78,7 +71,7 @@ namespace TradeBuddy.Window
 							ImGui.Text(keyList[i].name);
 
 							ImGui.TableNextColumn();
-							ImGui.Text(Convert.ToString(keyList[i].price));
+							ImGui.Text(String.Format("{0:0,0}", keyList[i].price).TrimStart('0'));
 
 							ImGui.TableNextColumn();
 							if (ImGuiComponents.IconButton(i, Dalamud.Interface.FontAwesomeIcon.Pen))

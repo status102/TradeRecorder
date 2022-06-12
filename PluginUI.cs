@@ -13,8 +13,6 @@ namespace TradeBuddy
 	{
 		private Configuration configuration;
 
-		private ImGuiScene.TextureWrap goatImage;
-
 		private bool visible = false;
 		public bool Visible
 		{
@@ -35,17 +33,16 @@ namespace TradeBuddy
 
 		public bool finalCheck = false;//在双方都确认的情况下进入最终交易确认
 
-		public PluginUI(Configuration configuration, ImGuiScene.TextureWrap goatImage)
+		public PluginUI(Configuration configuration)
 		{
 			this.configuration = configuration;
-			this.goatImage = goatImage;
 			
 			DalamudDll.ChatGui.ChatMessage += Trade.messageDelegate;
 		}
 
 		public void Dispose()
 		{
-			this.goatImage.Dispose();
+			this.configuration.Dispose();
 			DalamudDll.ChatGui.ChatMessage -= Trade.messageDelegate;
 		}
 
@@ -58,40 +55,11 @@ namespace TradeBuddy
 			// There are other ways to do this, but it is generally best to keep the number of
 			// draw delegates as low as possible.
 
-			DrawMainWindow();
-			//DrawSettingsWindow();
 			Setting.DrawSetting(ref settingsVisible);
 			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
-			History.DrawHistory(ref historyVisible);
+			Plugin.Instance.History.DrawHistory(ref historyVisible);
 		}
 
-		public void DrawMainWindow()
-		{
-			if (!Visible) return;
-
-			ImGui.SetNextWindowSize(new Vector2(375, 330), ImGuiCond.FirstUseEver);
-			ImGui.SetNextWindowSizeConstraints(new Vector2(375, 330), new Vector2(float.MaxValue, float.MaxValue));
-			if (ImGui.Begin("My Amazing Window", ref this.visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-			{
-				ImGui.Text("案件数量：" + ImGui.GetIO().KeysDown[37] + "案件数量：" + ImGui.GetIO().KeysDown[38] + "案件数量：" + ImGui.GetIO().KeysDown[39] + "案件数量：" + ImGui.GetIO().KeysDown[40]);
-
-				ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.ArrowLeft);
-				ImGuiComponents.TextWithLabel("label", "value", "hint");
-				
-				if (ImGui.Button("Show Settings"))
-				{
-					SettingsVisible = true;
-				}
-
-				ImGui.Spacing();
-
-				ImGui.Text("Have a goat:");
-				ImGui.Indent(55);
-				ImGui.Image(this.goatImage.ImGuiHandle, new Vector2(this.goatImage.Width, this.goatImage.Height));
-				ImGui.Unindent(55);
-			}
-			ImGui.End();
-		}
 
 		public void DrawSettingsWindow()
 		{

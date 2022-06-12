@@ -23,7 +23,7 @@ namespace TradeBuddy
 			public int price { get; set; } = 0;
 		}
 		private static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private static float[] tableWidth = new float[] { 30, 500, 55, 120 };
+		private static float[] tableWidth = new float[] { 20, -1, 55, 120 };
 		private static int width = 480, height = 600, giveGil = 0, receiveGil = 0;
 		private static string tradeTarget = "";
 		public static Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
@@ -40,7 +40,7 @@ namespace TradeBuddy
 					  if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
 					  {
 						  if (Plugin.Instance.Configuration.PrintConfirmTrade) DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易成功");
-						  History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
+						  Plugin.Instance.History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
 					  }
 					  else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
 					  {
@@ -184,22 +184,17 @@ namespace TradeBuddy
 		private static unsafe void DrowTradeTable(String[] headerText, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray, ref int gil)
 		{
 
-			//绘制5个道具栏
 			ImGui.BeginTable("交易栏", headerText.Length, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV);
 
 			for (int i = 0; i < headerText.Length; i++)
 			{
-				ImGui.TableNextColumn();
-				ImGui.TableHeader(headerText[i]);
-
-				// todo 最好能让拉伸的时候只拉伸第一列
-				if (tableWidth.Length > i && tableWidth[i] >= 0)
-					if (i == 1)
-						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.WidthStretch, tableWidth[i]);
+				if (tableWidth.Length > i)
+					if (tableWidth[i] >= 0)
+						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.WidthFixed, tableWidth[i]);
 					else
-						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.None, tableWidth[i]);
-
+						ImGui.TableSetupColumn(headerText[i], ImGuiTableColumnFlags.WidthStretch);
 			}
+			ImGui.TableHeadersRow();
 
 			for (int i = 0; i < atkResNodeList.Length; i++)
 			{
@@ -243,7 +238,7 @@ namespace TradeBuddy
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = false;
 				}
-				var image = Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
+				var image = Plugin.Instance.Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
 				var itemByIconId = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
 				//iconId反查item失败
 				if (itemByIconId == null)
@@ -266,7 +261,7 @@ namespace TradeBuddy
 
 				ImGui.TableNextColumn();
 				if (image != null) ImGui.Image(image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
-				//ImGui.Text(iconId + "=" + iconIdStr);
+				
 				ImGui.TableNextColumn();
 				ImGui.Text(itemArray[i].name);
 
@@ -316,7 +311,7 @@ namespace TradeBuddy
 
 			ImGui.TableNextColumn();
 
-			ImGuiScene.TextureWrap? gilImage = Configuration.getIcon(65002, false);
+			ImGuiScene.TextureWrap? gilImage = Plugin.Instance.Configuration.getIcon(65002, false);
 			if (gilImage != null) ImGui.Image(gilImage.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 			ImGui.TableNextColumn();
@@ -325,9 +320,7 @@ namespace TradeBuddy
 			ImGui.TableNextColumn();
 			ImGui.Text(gilTextNode->NodeText.ToString());
 
-			//DalamudDll.ChatGui.PrintError("gilTextNode<" + gilTextNode->NodeText + ">");
 			gil = Convert.ToInt32("0" + gilTextNode->NodeText.ToString().Replace(",", String.Empty).Trim());
-			//gil = -1;
 
 			int sum = 0;
 			ImGui.TableNextColumn();

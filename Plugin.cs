@@ -2,6 +2,7 @@
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using System.IO;
+using TradeBuddy.Window;
 
 namespace TradeBuddy
 {
@@ -14,6 +15,7 @@ namespace TradeBuddy
 		public DalamudPluginInterface PluginInterface { get; init; }
 		public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
+		public History History { get; init; }
 		public PluginUI PluginUi { get; init; }
 
 		public static Plugin Instance { get; private set; }
@@ -26,18 +28,19 @@ namespace TradeBuddy
 			Instance = this;
 			this.PluginInterface = pluginInterface;
 			this.CommandManager = commandManager;
+			History = new History();
 
 			DalamudDll.DalamudInitialize(pluginInterface);
 			this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 			this.Configuration.Initialize(this.PluginInterface);
 
-			var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
-			var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
-			this.PluginUi = new PluginUI(this.Configuration, goatImage);
+			//var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
+			//var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
+			this.PluginUi = new PluginUI(this.Configuration);
 
 			this.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
 			{
-				HelpMessage = "/tb 打开历史记录"
+				HelpMessage = "/tb 打开历史记录" +"\n /tb config|cfg 打开设置窗口"
 			});
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;

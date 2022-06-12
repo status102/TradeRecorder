@@ -23,16 +23,16 @@ namespace TradeBuddy
 		[NonSerialized]
 		public Dictionary<string, int> presetItem = new Dictionary<string, int>();
 		[NonSerialized]
-		public static Dictionary<uint, TextureWrap?> iconList = new Dictionary<uint, TextureWrap?>();
+		public Dictionary<uint, TextureWrap?> iconList = new Dictionary<uint, TextureWrap?>();
 		[NonSerialized]
-		public static Dictionary<uint, TextureWrap?> hqiconList = new Dictionary<uint, TextureWrap?>();
+		public Dictionary<uint, TextureWrap?> hqiconList = new Dictionary<uint, TextureWrap?>();
 		public class PresetItem
 		{
 			public int price;
 			public string name = "";
 		}
 
-		public static TextureWrap? getIcon(uint iconId, bool isHq)
+		public TextureWrap? getIcon(uint iconId, bool isHq)
 		{
 			if (!isHq && iconList.ContainsKey(iconId)) return iconList[iconId];
 			if (isHq && hqiconList.ContainsKey(iconId)) return hqiconList[iconId];
@@ -44,6 +44,12 @@ namespace TradeBuddy
 			else
 				iconList.Add(iconId, icon);
 			return icon;
+		}
+
+		public void Dispose()
+		{
+			foreach(TextureWrap? icon in iconList.Values)if(icon != null)icon.Dispose();
+			foreach(TextureWrap? icon in hqiconList.Values)if(icon != null)icon.Dispose();
 		}
 
 		#region Init and Save
