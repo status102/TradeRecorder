@@ -62,12 +62,11 @@ namespace TradeBuddy.Window
 						keyList.Clear();
 						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
 						{
-							DalamudDll.ChatGui.Print("refresh：" + item.name);
 							if (item.iconId == -1 && item.name.Length > 0)
 							{
 								item.isHQ = item.name.EndsWith("HQ");
 								if (item.isHQ) name = item.name.Substring(0, item.name.Length - 2);
-								else name  = item.name;
+								else name = item.name;
 								var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
 
 								if (itemByName == null)
@@ -236,10 +235,7 @@ namespace TradeBuddy.Window
 						if (ImGuiComponents.IconButton(FontAwesomeIcon.Check) && !string.IsNullOrEmpty(name))
 						{
 							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
-							{
 								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
-								DalamudDll.ChatGui.Print(editIndex + "-" + Plugin.Instance.Configuration.presetItem[name]);
-							}
 							else
 								Plugin.Instance.Configuration.presetList[editIndex].name = name;
 

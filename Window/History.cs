@@ -145,12 +145,13 @@ namespace TradeBuddy.Window
 					if (trade == null || trade.time.Length == 0) continue;
 					StringBuilder title = new StringBuilder();
 					title = title.Append(index + 1).Append(":  ").Append(trade.time).Append("  <").Append(trade.targetName).Append('>');
-					if (trade.giveGil > 0) title = title.Append("  <--").Append(trade.giveGil);
-					if (trade.receiveGil > 0) title = title.Append(' ', 40).Append("  -->").Append(trade.receiveGil);
 					if (ImGui.CollapsingHeader(title.ToString(), ref trade.visible))
 					{
 						if (ImGui.BeginTable("histroy", 2, ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
 						{
+							ImGui.TableSetupColumn("支付");
+							ImGui.TableSetupColumn("接收");
+							ImGui.TableHeadersRow();
 							for (int i = 0; i < Math.Max(trade.giveItemArray.Length, trade.receiveItemArray.Length); i++)
 							{
 								ImGui.TableNextColumn();
@@ -164,6 +165,14 @@ namespace TradeBuddy.Window
 								if (trade.receiveItemArray.Length > i) ImGui.Text(trade.receiveItemArray[i].name + " x " + trade.receiveItemArray[i].count);
 								else ImGui.Text("");
 							}
+							if (trade.giveGil > 0 || trade.receiveGil > 0) { 
+								ImGui.NextColumn();
+								if(trade.giveGil > 0)ImGui.Text(String.Format("金币: {0:0,0}", trade.giveGil).TrimStart('0'));
+
+								ImGui.NextColumn();
+								if (trade.receiveGil > 0)ImGui.Text(String.Format("金币: {0:0,0}", trade.receiveGil).TrimStart('0'));
+							}
+							
 							ImGui.EndTable();
 						}
 					}
