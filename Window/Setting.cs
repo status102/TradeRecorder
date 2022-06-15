@@ -278,8 +278,68 @@ namespace TradeBuddy.Window
 						{
 							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name)) name = name + "1";
 						}
+						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
+						{
+							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
+								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
+							else
+								Plugin.Instance.Configuration.presetList[editIndex].name = name;
+
+							try
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
+							}
+							catch (FormatException)
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].price = 0;
+							}
+
+							Plugin.Instance.Configuration.presetList[editIndex].isHQ = name.EndsWith("HQ");
+							if (Plugin.Instance.Configuration.presetList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
+							var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
+							if (itemByName == null)
+								Plugin.Instance.Configuration.presetList[editIndex].iconId = 0;
+							else
+								Plugin.Instance.Configuration.presetList[editIndex].iconId = itemByName.Icon;
+
+							Plugin.Instance.Configuration.Save();
+							Plugin.Instance.Configuration.RefreshKeySet();
+							editIndex = -1;
+							refresh = true;
+						}
+
 
 						ImGui.InputText("价格", ref price, 256, ImGuiInputTextFlags.CharsDecimal);
+						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
+						{
+							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
+								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
+							else
+								Plugin.Instance.Configuration.presetList[editIndex].name = name;
+
+							try
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
+							}
+							catch (FormatException)
+							{
+								Plugin.Instance.Configuration.presetList[editIndex].price = 0;
+							}
+
+							Plugin.Instance.Configuration.presetList[editIndex].isHQ = name.EndsWith("HQ");
+							if (Plugin.Instance.Configuration.presetList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
+							var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
+							if (itemByName == null)
+								Plugin.Instance.Configuration.presetList[editIndex].iconId = 0;
+							else
+								Plugin.Instance.Configuration.presetList[editIndex].iconId = itemByName.Icon;
+
+							Plugin.Instance.Configuration.Save();
+							Plugin.Instance.Configuration.RefreshKeySet();
+							editIndex = -1;
+							refresh = true;
+						}
+
 					}
 				}
 			}
