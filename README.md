@@ -1,8 +1,9 @@
-重大问题，无法区分使用相同图片的道具
+# TradeBuddy
+
+invalid！！！
+无法区分使用相同图片的道具
 
 尝试记录交易的内容并辅助计算交易金额
-
-一大堆bug正在来袭
 
 ![MVOTSL1%QDQGCS8Z%_I XWK](https://user-images.githubusercontent.com/102887808/173098510-2cb48ddd-981a-43da-b615-59e9ed425f40.png)
 
