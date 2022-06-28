@@ -17,8 +17,6 @@ namespace TradeBuddy
 		public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
 		public PluginUI PluginUi { get; init; }
-		public History History { get; init; }
-		public Setting Setting { get; init; }
 
 		public Plugin(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -28,8 +26,6 @@ namespace TradeBuddy
 			Instance = this;
 			this.PluginInterface = pluginInterface;
 			this.CommandManager = commandManager;
-			History = new History();
-			Setting = new Setting();
 
 			DalamudDll.DalamudInitialize(pluginInterface);
 			this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -46,8 +42,6 @@ namespace TradeBuddy
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;
 			this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
-
-			DalamudDll.ChatGui.Print("测试插件载入成功");
 		}
 
 		public void Dispose()
