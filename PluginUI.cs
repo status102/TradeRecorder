@@ -1,18 +1,27 @@
-﻿using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.Components;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using ImGuiNET;
+﻿using Dalamud.Game.Network;
+using Dalamud.Logging;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
-using System.Numerics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using TradeBuddy.Window;
-using static Dalamud.Game.Gui.ChatGui;
 
 namespace TradeBuddy
 {
-	public class PluginUI : IDisposable
+	public unsafe class PluginUI : IDisposable
 	{
+		public readonly static char[] intToHex = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 		private Configuration configuration;
+		public HistoryWindow History { get; init; }
+		public Trade Trade { get; init; }
+		public Setting Setting { get; init; }
+
+		public RetainerSellList RetainerSellList { get; init; }
+		public ItemSearchResult ItemSearchResult { get; init; }
+		
+		public AtkArrayDataHolder* atkArrayDataHolder { get; init; } = null;
 
 		private bool visible = false;
 		public bool Visible
@@ -34,17 +43,50 @@ namespace TradeBuddy
 
 		public bool finalCheck = false;//在双方都确认的情况下进入最终交易确认
 
-		public PluginUI(Configuration configuration)
+		public StreamWriter? writer;
+
+		public unsafe PluginUI(Configuration configuration)
 		{
+			/*
+			try
+			{
+				FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, String.Format("网络包{0:}.log", DateTime.Now.ToString("yyyy-MM-dd HH_mm_ss"))), FileMode.OpenOrCreate);
+				if (stream != null && stream.CanWrite)
+					writer = new StreamWriter(stream);
+			}
+			catch (IOException e)
+			{
+				writer = null;
+				DalamudDll.ChatGui.PrintError("网络包初始化：" + e.ToString());
+			}*/
 			this.configuration = configuration;
-			
-			DalamudDll.ChatGui.ChatMessage += Trade.messageDelegate;
+
+			Trade = new Trade();
+			History = new HistoryWindow();
+			Setting = new Setting();
+			RetainerSellList = new RetainerSellList();
+			ItemSearchResult = new ItemSearchResult();
+
+			//if (writer == null) DalamudDll.ChatGui.Print("network初始化错误");
+
+			var atkArrayDataHolder = &Framework.Instance()->GetUiModule()->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
+			if (atkArrayDataHolder != null && atkArrayDataHolder->StringArrayCount > 0) this.atkArrayDataHolder = atkArrayDataHolder;
+
+			DalamudDll.ChatGui.ChatMessage += Trade.MessageDelegate;
+			//DalamudDll.GameNetwork.NetworkMessage += networkMessageDelegate;
 		}
 
 		public void Dispose()
 		{
 			this.configuration.Dispose();
-			DalamudDll.ChatGui.ChatMessage -= Trade.messageDelegate;
+			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
+			//DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
+
+			if (writer != null)
+			{
+				writer.Flush();
+				writer.Close();
+			}
 		}
 
 		public void Draw()
@@ -55,30 +97,40 @@ namespace TradeBuddy
 			// it actually makes sense.
 			// There are other ways to do this, but it is generally best to keep the number of
 			// draw delegates as low as possible.
-			
-			//RetainerSellList.Draw();
-			Plugin.Instance.Setting.DrawSetting(ref settingsVisible);
+
 			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
-			Plugin.Instance.History.DrawHistory(ref historyVisible);
+			History.DrawHistory(ref historyVisible);
+			Setting.DrawSetting(ref settingsVisible);
+			RetainerSellList.Draw();
+			ItemSearchResult.Draw();
 		}
 
-
-		public void DrawSettingsWindow()
+		public unsafe void networkMessageDelegate(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId, NetworkMessageDirection direction)
 		{
-			if (!SettingsVisible)
+			if (writer != null)
 			{
-				return;
-			}
+				StringBuilder stringBuilder = new StringBuilder();
+				byte databyte;
+				stringBuilder.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff "));
+				int index = Marshal.ReadByte(dataPtr, 36);
+				int codeint56 = Marshal.ReadInt32(dataPtr, 56);
+				ushort codeShort56 = (ushort)Marshal.ReadInt16(dataPtr, 56);
+				ushort codeShort64 = (ushort)Marshal.ReadInt16(dataPtr, 64);
+				ushort codeShort72 = (ushort)Marshal.ReadInt16(dataPtr, 72);
 
-			ImGui.SetNextWindowSize(new Vector2(232, 75), ImGuiCond.Always);
-			if (ImGui.Begin("A Wonderful Configuration Window", ref this.settingsVisible,
-				ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-			{
-				// can't ref a property, so use a local copy
-				
+				stringBuilder.Append(String.Format("OpCode：{0:}，[{1:}->{2:}]", opCode, sourceActorId, targetActorId));
+				stringBuilder.Append(string.Format("(index：{0:}, id(int56)：{1:}, id(short56)：{2:}, id(short64):{3:}, id(short64)：{4:})", index, codeint56, codeShort56, codeShort64, codeShort72));
+
+
+				stringBuilder.Append("： ");
+				for (int i = 0; i < 200; i++)
+				{
+					databyte = Marshal.ReadByte(dataPtr, i);
+					stringBuilder.Append(' ').Append(intToHex[databyte / 16]).Append(intToHex[databyte % 16]);
+				}
+				writer.WriteLine(stringBuilder.ToString());
+				//writer.WriteLine(Encoding.UTF8.GetString(databyte));
 			}
-			ImGui.End();
 		}
-
 	}
 }

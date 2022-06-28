@@ -12,31 +12,34 @@ namespace TradeBuddy
 		public int Version { get; set; } = 0;
 
 		public bool ShowTrade { get; set; } = true;
-		public bool PrintConfirmTrade { get; set; } = false;
-		public bool PrintCancelTrade { get; set; } = true;
+		public bool TradeConfirmAlert { get; set; } = false;
+		public bool TradeCancelAlert { get; set; } = true;
 
 		public string tradeConfirmStr { get; set; } = "交易完成。";
 		public string tradeCancelStr { get; set; } = "交易取消。";
 
-		public List<PresetItem> presetList = new List<PresetItem>();
+		public List<PresetItem> presetItemList = new();
 
 		[NonSerialized]
-		public Dictionary<string, int> presetItem = new Dictionary<string, int>();
+		public Dictionary<string, int> presetItemDictionary = new();
 		[NonSerialized]
-		public static Dictionary<uint, TextureWrap?> iconList = new Dictionary<uint, TextureWrap?>();
+		public static Dictionary<uint, TextureWrap?> iconList = new();
 		[NonSerialized]
-		public static Dictionary<uint, TextureWrap?> hqiconList = new Dictionary<uint, TextureWrap?>();
+		public static Dictionary<uint, TextureWrap?> hqiconList = new();
 		public class PresetItem
 		{
 			[NonSerialized]
 			public int iconId = -1; // -1未初始化 0未找到
 			[NonSerialized]
 			public bool isHQ = false;// 仅用作加载icon
-			public int price;
+			public float price;
 			public string name = "";
+
+			public override string ToString() => String.Format("{0:},{1:}", name, price);
+
 		}
 
-		public static TextureWrap? getIcon(uint iconId, bool isHq)
+		public static TextureWrap? GetIcon(uint iconId, bool isHq)
 		{
 			if (!isHq && iconList.ContainsKey(iconId)) return iconList[iconId];
 			if (isHq && hqiconList.ContainsKey(iconId)) return hqiconList[iconId];
@@ -44,16 +47,20 @@ namespace TradeBuddy
 				DalamudDll.DataManager.GetImGuiTextureHqIcon(iconId) :
 				DalamudDll.DataManager.GetImGuiTextureIcon(iconId);
 			if (isHq)
+			{
 				hqiconList.Add(iconId, icon);
+			}
 			else
+			{
 				iconList.Add(iconId, icon);
+			}
 			return icon;
 		}
 
 		public void Dispose()
 		{
-			foreach(TextureWrap? icon in iconList.Values)if(icon != null)icon.Dispose();
-			foreach(TextureWrap? icon in hqiconList.Values)if(icon != null)icon.Dispose();
+			foreach (TextureWrap? icon in iconList.Values) if (icon != null) icon.Dispose();
+			foreach (TextureWrap? icon in hqiconList.Values) if (icon != null) icon.Dispose();
 		}
 
 		#region Init and Save
@@ -69,10 +76,15 @@ namespace TradeBuddy
 
 		public void RefreshKeySet()
 		{
-			presetItem.Clear();
-			PresetItem[] list = presetList.ToArray();
+			presetItemDictionary.Clear();
+			PresetItem[] list = presetItemList.ToArray();
 			for (int i = 0; i < list.Length; i++)
-				if(!presetItem.ContainsKey(list[i].name)) presetItem.Add(list[i].name, i);
+			{
+				if (!presetItemDictionary.ContainsKey(list[i].name))
+				{
+					presetItemDictionary.Add(list[i].name, i);
+				}
+			}
 		}
 
 		public void Save()

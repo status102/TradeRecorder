@@ -4,9 +4,10 @@ using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using static Dalamud.Game.Gui.ChatGui;
+using System.Text;
 
 namespace TradeBuddy
 {
@@ -19,38 +20,17 @@ namespace TradeBuddy
 			public string name { get; set; } = "";
 			public int count { get; set; } = 0;
 
-			public int price { get; set; } = 0;
+			public float price { get; set; } = 0;
 		}
-		private static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private static float[] tableWidth = new float[] { 20, -1, 85, 120 };
-		private static int width = 480, height = 600, giveGil = 0, receiveGil = 0;
-		private static string tradeTarget = "";
-		public static Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
-		public static Item[] receiveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
+		private readonly static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
+		private readonly static float[] tableWidth = new float[] { 20, -1, 85, 120 };
+		private readonly static int width = 480, height = 600;
+		private int giveGil = 0, receiveGil = 0;
+		private string tradeTarget = "";
+		private Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
+		private Item[] receiveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
 
-		public static OnMessageDelegate messageDelegate = (XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled) =>
-		  {
-			  try
-			  {
-				  if (Plugin.Instance.PluginUi.finalCheck && type == XivChatType.SystemMessage && !isHandled)
-				  {
-					  //Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
-					  //Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
-					  if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
-					  {
-						  if (Plugin.Instance.Configuration.PrintConfirmTrade) DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易成功");
-						  Plugin.Instance.History.PushTradeHistory(tradeTarget, giveGil, giveItem, receiveGil, receiveItem);
-					  }
-					  else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
-						  if (Plugin.Instance.Configuration.PrintCancelTrade) DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]交易取消");
-				  }
-			  }
-			  catch (Exception ex)
-			  {
-				  DalamudDll.ChatGui.PrintError(ex.ToString());
-			  }
-		  };
-		public static unsafe void DrawTrade(bool tradeVisible, ref bool tradeOnceVisible, ref bool finalCheck, ref bool historyVisible, ref bool settingVisivle)
+		public unsafe void DrawTrade(bool tradeVisible, ref bool tradeOnceVisible, ref bool finalCheck, ref bool historyVisible, ref bool settingVisivle)
 		{
 			var tradeAddess = DalamudDll.GameGui.GetAddonByName("Trade", 1);
 			if (tradeAddess == IntPtr.Zero)
@@ -60,6 +40,11 @@ namespace TradeBuddy
 				return;
 			}
 			if (!tradeOnceVisible || !tradeVisible) return;
+			if (Plugin.Instance.PluginUi.atkArrayDataHolder == null || Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrayCount < 10)
+			{
+				DalamudDll.ChatGui.PrintError("TradeBuddy初始化错误");
+				return;
+			}
 			var trade = (AtkUnitBase*)tradeAddess;
 			if (trade->UldManager.NodeListCount <= 0) return;
 			if (trade->UldManager.LoadedState != 3) return;//等待交易窗口加载完毕
@@ -103,7 +88,8 @@ namespace TradeBuddy
 					ImGuiComponents.TextWithLabel("<--", "");
 
 				ImGui.SameLine(ImGui.GetColumnWidth() - 90);
-				ImGui.TextColored(new Vector4(1, 1, 1, 0.5f), "(?)");
+				ImGui.TextDisabled("(?)");
+				//ImGui.TextColored(new Vector4(1, 1, 1, 0.5f), "(?)");
 				if (ImGui.IsItemHovered())
 				{
 					ImGui.BeginTooltip();
@@ -140,7 +126,7 @@ namespace TradeBuddy
 
 				try
 				{
-					DrowTradeTable(header, giveResNode, giveMoney, ref giveItem, ref giveGil);
+					DrowTradeTable(ref giveGil, 0, header, giveResNode, giveMoney, ref giveItem);
 				}
 				catch (Exception e)
 				{
@@ -156,7 +142,7 @@ namespace TradeBuddy
 					ImGuiComponents.TextWithLabel(tradeTarget + " -->", "");
 				try
 				{
-					DrowTradeTable(header, receiveResNode, receiveMoney, ref receiveItem, ref receiveGil);
+					DrowTradeTable(ref receiveGil, 5, header, receiveResNode, receiveMoney, ref receiveItem);
 				}
 				catch (Exception e)
 				{
@@ -178,9 +164,8 @@ namespace TradeBuddy
 		}
 
 		//绘制交易物品表格
-		private static unsafe void DrowTradeTable(String[] headerText, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray, ref int gil)
+		private unsafe void DrowTradeTable(ref int gil, int offset, String[] headerText, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray)
 		{
-
 			ImGui.BeginTable("交易栏", headerText.Length, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV);
 
 			for (int i = 0; i < headerText.Length; i++)
@@ -234,7 +219,7 @@ namespace TradeBuddy
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = false;
 				}
-				var image = Configuration.getIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
+				var image = Configuration.GetIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
 				var itemByIconId = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
 				//iconId反查item失败
 				if (itemByIconId == null)
@@ -252,7 +237,25 @@ namespace TradeBuddy
 					continue;
 				}
 
-				itemArray[i].name = itemByIconId.Name;
+				byte* bytePtr = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
+				byte[] byteBuffer = new byte[100];
+				Array.Fill<byte>(byteBuffer, 0);
+
+				int len = 0;
+				for (int index = 0; index < 99 && bytePtr[index] != 0; index++)
+				{
+					len = index + 1;
+					byteBuffer[index] = bytePtr[index];
+				}
+				if (len > 24)
+				{
+					byte[] strBuffer = new byte[len - 24];
+					//前面抛弃14字节，后面抛弃10字节
+					Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
+
+					itemArray[i].name = Encoding.UTF8.GetString(strBuffer).TrimEnd('');
+				}
+				else itemArray[i].name = "---";
 				if (itemArray[i].isHQ) itemArray[i].name += "HQ";
 
 				ImGui.TableNextColumn();
@@ -262,22 +265,23 @@ namespace TradeBuddy
 				ImGui.Text(itemArray[i].name);
 
 				string presetPriceName = itemArray[i].name;
+				//string presetPriceName = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->;
 				itemArray[i].price = 0;
 				int priceType = 0;//0-默认， 1-设定HQ交易NQ， 2-设定NQ交易HQ
-				if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name))
+				if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name))
 				{ }
-				else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name[0..^2]))
+				else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
 				{
 					priceType = 2;
 					presetPriceName = itemArray[i].name[0..^2];
 				}
-				else if (Plugin.Instance.Configuration.presetItem.ContainsKey(itemArray[i].name + "HQ"))
+				else if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
 				{
 					priceType = 1;
 					presetPriceName = itemArray[i].name + "HQ";
 				}
 
-				foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetList)
+				foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetItemList)
 					if (presetPriceName == presetItem.name)
 					{
 						itemArray[i].price = presetItem.price;
@@ -307,7 +311,7 @@ namespace TradeBuddy
 
 			ImGui.TableNextColumn();
 
-			ImGuiScene.TextureWrap? gilImage = Configuration.getIcon(65002, false);
+			ImGuiScene.TextureWrap? gilImage = Configuration.GetIcon(65002, false);
 			if (gilImage != null) ImGui.Image(gilImage.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 			ImGui.TableNextColumn();
@@ -318,7 +322,7 @@ namespace TradeBuddy
 
 			gil = Convert.ToInt32("0" + gilTextNode->NodeText.ToString().Replace(",", String.Empty).Trim());
 
-			int sum = 0;
+			float sum = 0;
 			ImGui.TableNextColumn();
 			for (int i = 0; i < 5; i++)
 			{
@@ -330,5 +334,62 @@ namespace TradeBuddy
 			if (ImGui.IsItemClicked()) ImGui.SetClipboardText(String.Format("{0:0,0}", sum).TrimStart('0'));
 			ImGui.EndTable();
 		}
+
+		public void MessageDelegate(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
+		{
+			if (Plugin.Instance.PluginUi.finalCheck && type == XivChatType.SystemMessage)
+			{
+				//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
+				//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
+
+				if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
+				{
+					if (Plugin.Instance.Configuration.TradeConfirmAlert)
+					{
+						DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易成功");
+					}
+					List<KeyValuePair<string, int>> giveItemList = new(), receiveItemList = new();
+					foreach (Item item in giveItem)
+					{
+						if (item != null && item.count > 0)
+						{
+							giveItemList.Add(new KeyValuePair<string, int>(item.name, item.count));
+						}
+					}
+					foreach (Item item in receiveItem)
+					{
+						if (item != null && item.count > 0)
+						{
+							receiveItemList.Add(new KeyValuePair<string, int>(item.name, item.count));
+						}
+					}
+					Plugin.Instance.PluginUi.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+				}
+				else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
+				{
+					if (Plugin.Instance.Configuration.TradeCancelAlert)
+					{
+						DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]交易取消");
+					}
+					List<KeyValuePair<string, int>> giveItemList = new(), receiveItemList = new();
+					foreach (Item item in giveItem)
+					{
+						if (item != null && item.count > 0)
+						{
+							giveItemList.Add(new KeyValuePair<string, int>(item.name, item.count));
+						}
+					}
+					foreach (Item item in receiveItem)
+					{
+						if (item != null && item.count > 0)
+						{
+							receiveItemList.Add(new KeyValuePair<string, int>(item.name, item.count));
+						}
+					}
+					Plugin.Instance.PluginUi.History.PushTradeHistory(false, tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+				}
+			}
+		}
+
 	}
 }

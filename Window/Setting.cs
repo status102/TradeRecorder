@@ -14,8 +14,8 @@ namespace TradeBuddy.Window
 	public class Setting
 	{
 		private static int editIndex = -1;
-		private string name, price;
-		private List<PresetItem> keyList = new List<PresetItem>();
+		private string name = "", price = "";
+		private List<PresetItem> keyList = new();
 		private bool refresh = true;
 
 		public void DrawSetting(ref bool settingVisible)
@@ -23,8 +23,8 @@ namespace TradeBuddy.Window
 			if (!settingVisible)
 			{
 				if (editIndex == -1) return;
-				if (string.IsNullOrEmpty(Plugin.Instance.Configuration.presetList[editIndex].name.Trim()))
-					Plugin.Instance.Configuration.presetList.RemoveAt(editIndex);
+				if (string.IsNullOrEmpty(Plugin.Instance.Configuration.presetItemList[editIndex].name.Trim()))
+					Plugin.Instance.Configuration.presetItemList.RemoveAt(editIndex);
 				editIndex = -1;
 			}
 
@@ -35,7 +35,7 @@ namespace TradeBuddy.Window
 				{
 					ImGui.Indent();
 					bool showTrade = Plugin.Instance.Configuration.ShowTrade;
-					if (ImGui.Checkbox("交易时显示监控窗口", ref showTrade))
+					if (ImGui.Checkbox("显示监控窗口", ref showTrade))
 					{
 						Plugin.Instance.Configuration.ShowTrade = showTrade;
 						Plugin.Instance.Configuration.Save();
@@ -46,11 +46,26 @@ namespace TradeBuddy.Window
 						Plugin.Instance.Configuration.tradeConfirmStr = confirmStr;
 						Plugin.Instance.Configuration.Save();
 					}
+					ImGui.SameLine();
+					bool confirmAlert = Plugin.Instance.Configuration.TradeConfirmAlert;
+					if (ImGui.Checkbox("触发后提示", ref confirmAlert))
+					{
+						Plugin.Instance.Configuration.TradeConfirmAlert = confirmAlert;
+						Plugin.Instance.Configuration.Save();
+					}
 
 					string cancelStr = Plugin.Instance.Configuration.tradeCancelStr;
 					if (ImGui.InputText("取消", ref cancelStr, 256))
 					{
 						Plugin.Instance.Configuration.tradeCancelStr = cancelStr;
+						Plugin.Instance.Configuration.Save();
+					}
+
+					ImGui.SameLine();
+					bool cancelAlert = Plugin.Instance.Configuration.TradeCancelAlert;
+					if (ImGui.Checkbox("触发后提示", ref cancelAlert))
+					{
+						Plugin.Instance.Configuration.TradeCancelAlert = cancelAlert;
 						Plugin.Instance.Configuration.Save();
 					}
 					ImGui.Unindent();
@@ -60,7 +75,7 @@ namespace TradeBuddy.Window
 					if (refresh)
 					{
 						keyList.Clear();
-						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
+						foreach (PresetItem item in Plugin.Instance.Configuration.presetItemList)
 						{
 							if (item.iconId == -1 && item.name.Length > 0)
 							{
@@ -95,7 +110,7 @@ namespace TradeBuddy.Window
 							ImGui.TableNextColumn();
 							if (keyList[i].iconId > 0)
 							{
-								TextureWrap? texture = Configuration.getIcon((uint)keyList[i].iconId, keyList[i].isHQ);
+								TextureWrap? texture = Configuration.GetIcon((uint)keyList[i].iconId, keyList[i].isHQ);
 								if (texture != null) ImGui.Image(texture.ImGuiHandle, new Vector2(25, 25));
 							}
 
@@ -103,7 +118,12 @@ namespace TradeBuddy.Window
 							ImGui.Text(keyList[i].name);
 
 							ImGui.TableNextColumn();
-							ImGui.Text(String.Format("{0:0,0}", keyList[i].price).TrimStart('0'));
+							string priceShow = String.Format("{0:0,0.0}", keyList[i].price).TrimStart('0');
+							if (priceShow.EndsWith(".0"))
+							{
+								priceShow = priceShow[0..^2];
+							}
+							ImGui.Text(priceShow.Length == 0 ? "0" : priceShow );
 
 							ImGui.TableNextColumn();
 							if (i == editIndex) continue;
@@ -112,14 +132,14 @@ namespace TradeBuddy.Window
 							{
 								editIndex = i;
 								name = new(keyList[i].name);
-								price = Convert.ToString(keyList[i].price);
+								this.price = Convert.ToString(keyList[i].price);
 							}
 
 							ImGui.SameLine();
 							//删除预设项目
 							if (ImGuiComponents.IconButton(-i, FontAwesomeIcon.Trash))
 							{
-								Plugin.Instance.Configuration.presetList.RemoveAt(i);
+								Plugin.Instance.Configuration.presetItemList.RemoveAt(i);
 								Plugin.Instance.Configuration.Save();
 								Plugin.Instance.Configuration.RefreshKeySet();
 								refresh = true;
@@ -127,64 +147,59 @@ namespace TradeBuddy.Window
 						}
 						ImGui.EndTable();
 					}
+
 					//添加预设的按钮
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus))
 					{
-						if (Plugin.Instance.Configuration.presetList[Plugin.Instance.Configuration.presetList.Count - 1].name == "")
+						editIndex = -2;
+
+						string clipboard = "";
+						try
 						{
-							editIndex = Plugin.Instance.Configuration.presetList.Count - 1;
-							name = new(keyList[editIndex].name);
-							price = Convert.ToString(keyList[editIndex].price);
+							clipboard = ImGui.GetClipboardText().Replace("\n", "").Replace("\r", "").Replace("\t", "").Trim();
 						}
-						else
-						{
-							PresetItem presetItem = new PresetItem();
-							Plugin.Instance.Configuration.presetList.Add(presetItem);
-							keyList.Add(presetItem);
+						catch (NullReferenceException) { }
+						name = "";
+						price = "0";
 
-							string clipboard = "";
-							try
-							{
-								clipboard = ImGui.GetClipboardText().Replace("\n", "").Replace("\r", "").Replace("\t", "").Trim();
-							}
-							catch (NullReferenceException) { }
-							name = "";
-							price = "0";
-
-							foreach (char c in clipboard)
-								if (c >= '0' && c <= '9') price = price + c;
-								else name = name + c;
-							price = price.TrimStart('0');
-
-							editIndex = Plugin.Instance.Configuration.presetList.Count - 1;
-						}
+						foreach (char c in clipboard)
+							if (c >= '0' && c <= '9') price = price + c;
+							else name = name + c;
+						price = price.TrimStart('0');
+						price = price.Length == 0 ? "0" : price;
 					}
 
 					ImGui.SameLine();
+					//删除所有预设
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
 					{
-						Plugin.Instance.Configuration.presetList.Clear();
+						Plugin.Instance.Configuration.presetItemList.Clear();
 						Plugin.Instance.Configuration.Save();
 						Plugin.Instance.Configuration.RefreshKeySet();
 						refresh = true;
 					}
 					if (ImGui.IsItemHovered())
+					{
 						ImGui.SetTooltip("删除所有项目");
+					}
 
+					//导出到剪贴板
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Upload))
 					{
-						StringBuilder stringBuilder = new StringBuilder();
-						foreach (PresetItem item in Plugin.Instance.Configuration.presetList)
-							stringBuilder.Append(item.name).Append(',').Append(item.price).Append('\n');
+						StringBuilder stringBuilder = new();
+						Plugin.Instance.Configuration.presetItemList.ForEach(c => stringBuilder.AppendLine(c.ToString()));
 						ImGui.SetClipboardText(stringBuilder.ToString());
 						Plugin.Instance.Configuration.Save();
 						Plugin.Instance.Configuration.RefreshKeySet();
 						refresh = true;
 					}
 					if (ImGui.IsItemHovered())
+					{
 						ImGui.SetTooltip("导出到剪贴板");
+					}
 
+					//从剪贴板导入
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Download))
 					{
@@ -192,7 +207,7 @@ namespace TradeBuddy.Window
 						{
 							string clipboard = ImGui.GetClipboardText().Trim();
 							string[] strLine = clipboard.Split('\n'), str;
-							int price = 0;
+							float price = 0;
 							foreach (string line in strLine)
 							{
 								if (line != null && line.Length > 0)
@@ -202,13 +217,13 @@ namespace TradeBuddy.Window
 									{
 										try
 										{
-											price = int.Parse(str[1]);
+											price = float.Parse(str[1]);
 										}
 										catch (FormatException)
 										{
 											price = 0;
 										}
-										Plugin.Instance.Configuration.presetList.Add(new PresetItem() { name = str[0], price = price });
+										Plugin.Instance.Configuration.presetItemList.Add(new PresetItem() { name = str[0], price = price });
 									}
 
 								}
@@ -223,117 +238,82 @@ namespace TradeBuddy.Window
 						refresh = true;
 					}
 					if (ImGui.IsItemHovered())
+					{
 						ImGui.SetTooltip("从剪贴板导入");
-
-
+					}
 
 					//添加or编辑预设中
 					if (editIndex != -1 && editIndex < keyList.Count)
 					{
+						bool save = false;
 						//保存设置
 						ImGui.SameLine();
 						if (ImGuiComponents.IconButton(FontAwesomeIcon.Check) && !string.IsNullOrEmpty(name))
 						{
-							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
-								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
-							else
-								Plugin.Instance.Configuration.presetList[editIndex].name = name;
-
-							try
-							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
-							}
-							catch (FormatException)
-							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = 0;
-							}
-
-							Plugin.Instance.Configuration.presetList[editIndex].isHQ = name.EndsWith("HQ");
-							if (Plugin.Instance.Configuration.presetList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
-							var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
-							if (itemByName == null)
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = 0;
-							else
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = itemByName.Icon;
-
-							Plugin.Instance.Configuration.Save();
-							Plugin.Instance.Configuration.RefreshKeySet();
-							editIndex = -1;
-							refresh = true;
+							save = true;
 						}
 						//取消编辑
 						ImGui.SameLine();
 						if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
 						{
-							if (Plugin.Instance.Configuration.presetList[editIndex].name == "")
-							{
-								Plugin.Instance.Configuration.presetList.RemoveAt(editIndex);
-								Plugin.Instance.Configuration.Save();
-								Plugin.Instance.Configuration.RefreshKeySet();
-							}
 							editIndex = -1;
 						}
 
-						if (ImGui.InputText("名字", ref name, 256, ImGuiInputTextFlags.CharsNoBlank))
-						{
-							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name)) name = name + "1";
-						}
+						ImGui.InputText("名字", ref name, 256, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
 						{
-							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
-								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
-							else
-								Plugin.Instance.Configuration.presetList[editIndex].name = name;
-
-							try
-							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
-							}
-							catch (FormatException)
-							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = 0;
-							}
-
-							Plugin.Instance.Configuration.presetList[editIndex].isHQ = name.EndsWith("HQ");
-							if (Plugin.Instance.Configuration.presetList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
-							var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
-							if (itemByName == null)
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = 0;
-							else
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = itemByName.Icon;
-
-							Plugin.Instance.Configuration.Save();
-							Plugin.Instance.Configuration.RefreshKeySet();
-							editIndex = -1;
-							refresh = true;
+							save = true;
 						}
-
 
 						ImGui.InputText("价格", ref price, 256, ImGuiInputTextFlags.CharsDecimal);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
 						{
-							if (Plugin.Instance.Configuration.presetItem.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItem[name])
-								Plugin.Instance.Configuration.presetList[editIndex].name = name + "1";
-							else
-								Plugin.Instance.Configuration.presetList[editIndex].name = name;
+							save = true;
+						}
 
-							try
+						if (save)
+						{
+							if (editIndex == -2)
 							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = Convert.ToInt32("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
+								// todo
+								PresetItem presetItem = new();
+								Plugin.Instance.Configuration.presetItemList.Add(presetItem);
+								keyList.Add(presetItem);
+
+								editIndex = Plugin.Instance.Configuration.presetItemList.Count - 1;
 							}
-							catch (FormatException)
+							if (name == "")
 							{
-								Plugin.Instance.Configuration.presetList[editIndex].price = 0;
+								Plugin.Instance.Configuration.presetItemList.RemoveAt(editIndex);
 							}
-
-							Plugin.Instance.Configuration.presetList[editIndex].isHQ = name.EndsWith("HQ");
-							if (Plugin.Instance.Configuration.presetList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
-							var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
-							if (itemByName == null)
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = 0;
 							else
-								Plugin.Instance.Configuration.presetList[editIndex].iconId = itemByName.Icon;
+							{
+								if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(name) && editIndex != Plugin.Instance.Configuration.presetItemDictionary[name])
+								{
+									Plugin.Instance.Configuration.presetItemList[editIndex].name = name + "1";
+								}
+								else
+								{
+									Plugin.Instance.Configuration.presetItemList[editIndex].name = name;
+								}
 
+								try
+								{
+									Plugin.Instance.Configuration.presetItemList[editIndex].price = float.Parse("0" + price.Replace("-", string.Empty).Replace(",", string.Empty));
+								}
+								catch (FormatException)
+								{
+									Plugin.Instance.Configuration.presetItemList[editIndex].price = 0;
+								}
+
+								Plugin.Instance.Configuration.presetItemList[editIndex].isHQ = name.EndsWith("HQ");
+								if (Plugin.Instance.Configuration.presetItemList[editIndex].isHQ) name = name.Substring(0, name.Length - 2);
+								var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name);
+								if (itemByName == null)
+									Plugin.Instance.Configuration.presetItemList[editIndex].iconId = 0;
+								else
+									Plugin.Instance.Configuration.presetItemList[editIndex].iconId = itemByName.Icon;
+							}
 							Plugin.Instance.Configuration.Save();
 							Plugin.Instance.Configuration.RefreshKeySet();
 							editIndex = -1;
