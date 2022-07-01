@@ -1,6 +1,7 @@
 # TradeBuddy
 
 记录交易的内容并根据预先设定计算交易金额，不会自动填写进交易窗口。
+
 Record the content of the transaction and calculate the transaction amount according to the preset, and will not automatically fill in the transaction window.
 
 雇员出售列表中的道具如果有设置预期价格，单价绿色为大于等于预期价格，小于时则为红色。
@@ -17,8 +18,12 @@ Record the content of the transaction and calculate the transaction amount accor
 
 - [x] 雇员出售列表颜色标注区分是否低于预期价格
 - [x] 市场板子标注预期的价格
-- [ ] 通过数据包或者sig获取交易界面道具名/itemId
+- [ ] 通过数据包或者sig获取交易itemId
 
 ## Thanks
 
 感谢獭爹、Loskh、zaevi、Yui以及幻想科技群群友
+
+## 附
+
+第一个稍微正经一点的项目，试着学习版本控制以及各种规范，依旧会很丑陋就是了
