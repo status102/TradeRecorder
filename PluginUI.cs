@@ -78,7 +78,8 @@ namespace TradeBuddy
 
 		public void Dispose()
 		{
-			this.configuration.Dispose();
+			configuration.Dispose();
+			Setting.Dispose();
 			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
 			//DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
 
@@ -91,12 +92,6 @@ namespace TradeBuddy
 
 		public void Draw()
 		{
-			// This is our only draw handler attached to UIBuilder, so it needs to be
-			// able to draw any windows we might have open.
-			// Each method checks its own visibility/state to ensure it only draws when
-			// it actually makes sense.
-			// There are other ways to do this, but it is generally best to keep the number of
-			// draw delegates as low as possible.
 
 			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
 			History.DrawHistory(ref historyVisible);

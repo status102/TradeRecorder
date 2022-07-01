@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using static TradeBuddy.Configuration;
 
 namespace TradeBuddy
 {
@@ -17,14 +18,16 @@ namespace TradeBuddy
 		{
 			public long iconId;
 			public bool isHQ = false;
-			public string name { get; set; } = "";
-			public int count { get; set; } = 0;
+			public string name = "";
+			public int count = 0;
+			public int price = 0;
 
-			public float price { get; set; } = 0;
+			public Dictionary<int, int> priceList = new();
 		}
 		private readonly static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private readonly static float[] tableWidth = new float[] { 20, -1, 85, 120 };
+		private readonly static float[] tableWidth = new float[] { 20, -1, 12, 150 };
 		private readonly static int width = 480, height = 600;
+		private byte[] byteBuffer = new byte[100];
 		private int giveGil = 0, receiveGil = 0;
 		private string tradeTarget = "";
 		private Item[] giveItem = new Item[5] { new Item(), new Item(), new Item(), new Item(), new Item() };
@@ -42,7 +45,6 @@ namespace TradeBuddy
 			if (!tradeOnceVisible || !tradeVisible) return;
 			if (Plugin.Instance.PluginUi.atkArrayDataHolder == null || Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrayCount < 10)
 			{
-				DalamudDll.ChatGui.PrintError("TradeBuddy初始化错误");
 				return;
 			}
 			var trade = (AtkUnitBase*)tradeAddess;
@@ -89,11 +91,10 @@ namespace TradeBuddy
 
 				ImGui.SameLine(ImGui.GetColumnWidth() - 90);
 				ImGui.TextDisabled("(?)");
-				//ImGui.TextColored(new Vector4(1, 1, 1, 0.5f), "(?)");
 				if (ImGui.IsItemHovered())
 				{
 					ImGui.BeginTooltip();
-					ImGui.Text("预期金额：");
+					ImGui.TextUnformatted("预期金额：");
 					ImGui.Bullet();
 					ImGui.SameLine();
 					ImGui.TextColored(color[0], "左键单击复制到剪贴板");
@@ -102,17 +103,14 @@ namespace TradeBuddy
 					ImGui.SameLine();
 					ImGui.TextColored(color[0], "“---”为未设定预期金额");
 
-					ImGui.Bullet();
-					ImGui.SameLine();
-					ImGui.TextColored(color[0], "“100/2,000”==>“单价/总价”");
 					//绿色为设定HQ但交易NQ
 					ImGui.Bullet();
 					ImGui.SameLine();
-					ImGui.TextColored(color[1], "为设定了HQ的预期金额，但交易的是NQ物品");
+					ImGui.TextColored(color[1], "设定了HQ的预期金额，但交易的是NQ物品");
 					//黄色为设定NQ但交易HQ
 					ImGui.Bullet();
 					ImGui.SameLine();
-					ImGui.TextColored(color[2], "为设定了NQ的预期金额，但交易的是HQ物品");
+					ImGui.TextColored(color[2], "设定了NQ的预期金额，但交易的是HQ物品");
 
 					ImGui.EndTooltip();
 				}
@@ -190,16 +188,7 @@ namespace TradeBuddy
 				//放入交易格子中再取消时，iconId会残留为之前的数值
 				if (!resNode->IsVisible || iconId < 1)
 				{
-					itemArray[i].iconId = 0;
-					itemArray[i].isHQ = false;
-					itemArray[i].name = "";
-					itemArray[i].count = 0;
-					itemArray[i].price = 0;
-					for (int j = 0; j < headerText.Length; j++)
-					{
-						ImGui.TableNextColumn();
-						ImGui.Text("");
-					}
+					itemArray[i] = new();
 					continue;
 				}
 
@@ -220,25 +209,9 @@ namespace TradeBuddy
 					itemArray[i].isHQ = false;
 				}
 				var image = Configuration.GetIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
-				var itemByIconId = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Icon == iconId);
-				//iconId反查item失败
-				if (itemByIconId == null)
-				{
-					itemArray[i].name = "";
-					itemArray[i].iconId = 0;
-					itemArray[i].isHQ = false;
-					itemArray[i].count = 0;
-					itemArray[i].price = 0;
-					for (int j = 0; j < headerText.Length; j++)
-					{
-						ImGui.TableNextColumn();
-						ImGui.Text(iconId + "-" + iconIdStr);
-					}
-					continue;
-				}
 
 				byte* bytePtr = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
-				byte[] byteBuffer = new byte[100];
+
 				Array.Fill<byte>(byteBuffer, 0);
 
 				int len = 0;
@@ -247,44 +220,55 @@ namespace TradeBuddy
 					len = index + 1;
 					byteBuffer[index] = bytePtr[index];
 				}
-				if (len > 24)
+				if (len <= 24)
 				{
-					byte[] strBuffer = new byte[len - 24];
-					//前面抛弃14字节，后面抛弃10字节
-					Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
-
-					itemArray[i].name = Encoding.UTF8.GetString(strBuffer).TrimEnd('');
+					itemArray[i] = new();
+					continue;
 				}
-				else itemArray[i].name = "---";
+
+				byte[] strBuffer = new byte[len - 24];
+				//前面抛弃14字节，后面抛弃10字节
+				Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
+
+				var strName = Encoding.UTF8.GetString(strBuffer).TrimEnd('');
+				if (itemArray[i].name != strName)
+				{
+					itemArray[i].name = strName;
+					itemArray[i].price = 0;
+				}
+
+
 				if (itemArray[i].isHQ) itemArray[i].name += "HQ";
 
 				ImGui.TableNextColumn();
 				if (image != null) ImGui.Image(image.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 				ImGui.TableNextColumn();
-				ImGui.Text(itemArray[i].name);
+				ImGui.TextUnformatted(itemArray[i].name);
+				if(ImGui.IsItemHovered())ImGui.SetTooltip("预设：" + Plugin.Instance.Configuration.PresetItemList[i].GetPriceStr());
 
 				string presetPriceName = itemArray[i].name;
 				//string presetPriceName = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->;
-				itemArray[i].price = 0;
+
 				int priceType = 0;//0-默认， 1-设定HQ交易NQ， 2-设定NQ交易HQ
-				if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name))
+				if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name))
 				{ }
-				else if (itemArray[i].isHQ && Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
+				else if (itemArray[i].isHQ && Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
 				{
 					priceType = 2;
 					presetPriceName = itemArray[i].name[0..^2];
 				}
-				else if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
+				else if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
 				{
 					priceType = 1;
 					presetPriceName = itemArray[i].name + "HQ";
 				}
 
-				foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetItemList)
-					if (presetPriceName == presetItem.name)
+				itemArray[i].priceList = new();
+				foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.PresetItemList)
+					if (presetPriceName == presetItem.ItemName)
 					{
-						itemArray[i].price = presetItem.price;
+						itemArray[i].priceList = presetItem.PriceList;
 						break;
 					}
 
@@ -294,28 +278,56 @@ namespace TradeBuddy
 					count = 1;
 				else
 					count = Convert.ToInt32("0" + countStr.Replace(",", string.Empty));
-
-				itemArray[i].count = count;
+				//如果数量刷新则重置计算价格
+				if (itemArray[i].count != count)
+				{
+					itemArray[i].count = count;
+					itemArray[i].price = 0;
+				}
 				ImGui.TableNextColumn();
 				ImGui.Text(Convert.ToString(count));
 
 				ImGui.TableNextColumn();
-				if (itemArray[i].price == 0)
+				if (itemArray[i].priceList.Count == 0)
+				{
 					ImGui.TextColored(color[priceType], "---");
+					itemArray[i].price = 0;
+				}
 				else
 				{
-					ImGui.TextColored(color[priceType], String.Format("{0:0,0}", itemArray[i].price).TrimStart('0') + "/" + String.Format("{0:0,0}", itemArray[i].price * itemArray[i].count).TrimStart('0'));
-					if (ImGui.IsItemClicked()) ImGui.SetClipboardText(String.Format("{0:0,0}", itemArray[i].price * itemArray[i].count).TrimStart('0'));
+					if (itemArray[i].price == 0)
+					{
+						if (Plugin.Instance.Configuration.StrictMode)
+						{
+							var countList = itemArray[i].priceList.Keys.ToList();
+							countList.Sort(PresetItem.Sort);
+							foreach (int num in countList)
+							{
+								if (itemArray[i].count / num * num == itemArray[i].count)
+								{
+									itemArray[i].price = itemArray[i].count / num * itemArray[i].priceList[num];
+									break;
+								}
+							}
+						}
+						else
+						{
+							// todo 计算非严格模式下价格计算，没辙
+						}
+					}
+					ImGui.TextColored(color[priceType], String.Format("{0:0,0}", itemArray[i].price).TrimStart('0'));
+					if (ImGui.IsItemClicked()) ImGui.SetClipboardText(String.Format("{0:0,0}", itemArray[i].price).TrimStart('0'));
 				}
 			}
 
+			ImGui.TableNextRow(ImGuiTableRowFlags.None, tableWidth[0]);
 			ImGui.TableNextColumn();
 
 			ImGuiScene.TextureWrap? gilImage = Configuration.GetIcon(65002, false);
 			if (gilImage != null) ImGui.Image(gilImage.ImGuiHandle, new Vector2(tableWidth[0], tableWidth[0]));
 
 			ImGui.TableNextColumn();
-			ImGui.Text("金币");
+			ImGui.TextUnformatted("金币");
 
 			ImGui.TableNextColumn();
 			ImGui.Text(gilTextNode->NodeText.ToString());
@@ -326,7 +338,7 @@ namespace TradeBuddy
 			ImGui.TableNextColumn();
 			for (int i = 0; i < 5; i++)
 			{
-				if (itemArray[i].price != 0) sum += itemArray[i].count * itemArray[i].price;
+				if (itemArray[i].price != 0) sum += itemArray[i].price;
 			}
 			sum += gil;
 			ImGui.Text(String.Format("{0:0,0}", sum).TrimStart('0'));
@@ -342,7 +354,7 @@ namespace TradeBuddy
 				//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
 				//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
 
-				if (message.TextValue == Plugin.Instance.Configuration.tradeConfirmStr)
+				if (message.TextValue == Plugin.Instance.Configuration.TradeConfirmStr)
 				{
 					if (Plugin.Instance.Configuration.TradeConfirmAlert)
 					{
@@ -365,7 +377,7 @@ namespace TradeBuddy
 					}
 					Plugin.Instance.PluginUi.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
 				}
-				else if (message.TextValue == Plugin.Instance.Configuration.tradeCancelStr)
+				else if (message.TextValue == Plugin.Instance.Configuration.TradeCancelStr)
 				{
 					if (Plugin.Instance.Configuration.TradeCancelAlert)
 					{

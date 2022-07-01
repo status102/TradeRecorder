@@ -1,4 +1,5 @@
-﻿using FFXIVClientStructs.FFXIV.Component.GUI;
+﻿using Dalamud.Logging;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -26,6 +27,7 @@ namespace TradeBuddy.Window
 				var sellList = sellListForm->UldManager.NodeList[10];
 				if (sellList->GetAsAtkComponentNode()->Component->UldManager.NodeListCount == 17)
 				{
+					// todo 有时候会有个别无法绘制
 					for (int i = 1; i < 14; i++)
 					{
 						var sellListItem = sellList->GetAsAtkComponentNode()->Component->UldManager.NodeList[i];
@@ -35,11 +37,6 @@ namespace TradeBuddy.Window
 							var iconNode = (AtkComponentIcon*)sellListItem->GetAsAtkComponentNode()->Component->UldManager.NodeList[11]->GetComponent();
 							if (iconNode->IconId == -1) continue;
 							bool isHQ = Convert.ToString(iconNode->IconId).StartsWith("10");
-							long iconId = iconNode->IconId;
-							if (isHQ)
-							{
-								iconId = Convert.ToInt64(Convert.ToString(iconNode->IconId).Substring(2));
-							}
 
 							var priceNode = sellListItem->GetAsAtkComponentNode()->Component->UldManager.NodeList[9]->GetAsAtkTextNode();
 							var nameNode = sellListItem->GetAsAtkComponentNode()->Component->UldManager.NodeList[10]->GetAsAtkTextNode();
@@ -54,44 +51,57 @@ namespace TradeBuddy.Window
 								byteLen = byteIndex + 1;
 								byteBuffer[byteIndex] = bytePtr[byteIndex];
 							}
-							byte[] strBuffer = new byte[byteLen - 24];
-							Array.Copy(byteBuffer, 14, strBuffer, 0, byteLen - 24);
-							string name = "";
-							//todo增加异常处理
-							name = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
-
-							//if (isHQ) name = name + "HQ";
-							if (priceList.ContainsKey(name))
-							{
-								try
-								{
-									//获取到雇员出售列表里面的价格
-									int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
-									if (price >= priceList[name])
-									{
-										priceNode->TextColor.R = 10;
-										priceNode->TextColor.G = 187;
-										priceNode->TextColor.B = 10;
-									}
-									else
-									{
-										priceNode->TextColor.R = 255;
-										priceNode->TextColor.G = 227;
-										priceNode->TextColor.B = 158;
-									}
-								}
-								catch (FormatException)
-								{
-								}
+							if (byteLen <= 24) {
+								StringBuilder sb = new ();
+								foreach (byte item in byteBuffer) sb.Append(' ').Append(PluginUI.intToHex[item / 16]).Append(PluginUI.intToHex[item % 16]);
+								PluginLog.Error(String.Format("雇员出售列表解析错误len：{0:}，str：{1:}", byteLen, sb.ToString()));
 							}
-							else if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(name))
+							else
 							{
-								foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.presetItemList)
+								byte[] strBuffer = new byte[byteLen - 24];
+								Array.Copy(byteBuffer, 14, strBuffer, 0, byteLen - 24);
+								string name = "";
+								//todo 增加异常处理
+								name = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
+
+								if (priceList.ContainsKey(name))
 								{
-									if (presetItem.name == name)
+									try
 									{
-										priceList.Add(presetItem.name, presetItem.price);
-										break;
+										//获取到雇员出售列表里面的价格
+										int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
+										if (price >= priceList[name] && Plugin.Instance.Configuration.DrawRetainerSellListProper)
+										{
+											//雇员出售价格合适
+											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[0];
+											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[1];
+											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[2];
+										}
+										else if (price < priceList[name] && Plugin.Instance.Configuration.DrawRetainerSellListAlert)
+										{
+											//雇员出售价格过低
+											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[0];
+											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[1];
+											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[2];
+										}
+									}
+									catch (FormatException e)
+									{
+										PluginLog.Error("雇员出售列表道具价格解析错误" + priceNode->NodeText.ToString() + "\n" + e.ToString());
+									}
+								}
+								else if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(name))
+								{
+									foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.PresetItemList)
+									{
+										if (presetItem.ItemName == name)
+										{
+#if DEBUG
+											DalamudDll.ChatGui.Print($"{name}预期价{presetItem.EvaluatePrice()}");
+#endif
+											if (presetItem.EvaluatePrice() != 0)priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
+											break;
+										}
 									}
 								}
 							}

@@ -8,6 +8,10 @@ namespace TradeBuddy.Window
 	public class ItemSearchResult
 	{
 		private bool addition = false;
+
+		/// <summary>
+		/// 板子出售列表显示预期价格
+		/// </summary>
 		public unsafe void Draw()
 		{
 			var itemSearchResultPtr = DalamudDll.GameGui.GetAddonByName("ItemSearchResult", 1);
@@ -32,26 +36,26 @@ namespace TradeBuddy.Window
 					len = i + 1;
 					byteBuffer[i] = sellItemNameNodeTextPtr[i];
 				}
-				if (len <= 24) PluginLog.Error("ItemSearchResult物品文本解析错误，len=" + len, Array.Empty<object>());
+				if (len <= 24) PluginLog.Error("ItemSearchResult物品文本解析错误，len=" + len);
 				else
 				{
 					byte[] strBuffer = new byte[len - 24];
 					Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
 					string itemName = Encoding.UTF8.GetString(strBuffer);
 					string priceNQStr = "", priceHQStr = "";
-					
-					if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemName))
+
+					if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName))
+						priceNQStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemName]].GetPriceStr();
+
+					if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName + "HQ"))
+						priceHQStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemName + "HQ"]].GetPriceStr();
+
+					if (!string.IsNullOrEmpty(priceNQStr)) priceNQStr = String.Format("  NQ：{0:}", priceNQStr);
+					if (!string.IsNullOrEmpty(priceHQStr)) priceHQStr = String.Format("  HQ：{0:}", priceHQStr);
+					if (!string.IsNullOrEmpty(priceHQStr) || !string.IsNullOrEmpty(priceNQStr))
 					{
-						priceNQStr = String.Format("{0:0,0.0}", Plugin.Instance.Configuration.presetItemList[Plugin.Instance.Configuration.presetItemDictionary[itemName]].price).TrimStart('0');
-						if (priceNQStr.EndsWith(".0")) priceNQStr = priceNQStr[0..^2];
+						itemName = String.Format("{0:}  预期价格-{1:}", itemName, (priceNQStr + priceHQStr)[2..]);
 					}
-					else if (Plugin.Instance.Configuration.presetItemDictionary.ContainsKey(itemName + "HQ"))
-					{
-						priceHQStr = String.Format("{0:0,0.0}", Plugin.Instance.Configuration.presetItemList[Plugin.Instance.Configuration.presetItemDictionary[itemName + "HQ"]].price).TrimStart('0');
-						if (priceHQStr.EndsWith(".0")) priceHQStr = priceHQStr[0..^2];
-					}
-					if (!string.IsNullOrEmpty(priceNQStr)) itemName = String.Format("{0:}  预期价格-NQ：{1:}", itemName, priceNQStr);
-					if (!string.IsNullOrEmpty(priceHQStr)) itemName = String.Format("{0:}  预期价格-HQ：{1:}", itemName, priceHQStr);
 					sellItemNameNode->SetText(itemName);
 					sellItemNameNode->TextColor.R = 243;
 					sellItemNameNode->TextColor.G = 243;

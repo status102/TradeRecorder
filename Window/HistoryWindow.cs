@@ -159,15 +159,15 @@ namespace TradeBuddy.Window
 								//ImGui.SameLine();
 
 								if (tradeItem.giveItemArray.Length > i)
-									ImGui.Text(tradeItem.giveItemArray[i].ToLongString());
-								else
-									ImGui.Text("");
+									ImGui.TextUnformatted(tradeItem.giveItemArray[i].ToLongString());
+								//else
+									//ImGui.TextUnformatted("");
 
 								ImGui.TableNextColumn();
 								if (tradeItem.receiveItemArray.Length > i)
 									ImGui.Text(tradeItem.receiveItemArray[i].ToLongString());
-								else
-									ImGui.Text("");
+								//else
+									//ImGui.TextUnformatted("");
 							}
 							if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0)
 							{
