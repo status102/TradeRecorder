@@ -40,6 +40,9 @@ namespace TradeBuddy
 			{
 				HelpMessage = "/tb 打开历史记录" +"\n /tb config|cfg 打开设置窗口"
 			});
+#if DEBUG
+			DalamudDll.ChatGui.Print($"{Name}测试加载");
+#endif
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;
 			this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;

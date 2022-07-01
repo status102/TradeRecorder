@@ -5,6 +5,7 @@ using ImGuiNET;
 using ImGuiScene;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using static TradeBuddy.Configuration;
@@ -13,13 +14,12 @@ namespace TradeBuddy.Window
 {
 	public class Setting
 	{
-		private readonly static Vector2 imageSize = new(60, 60);
+		private readonly static Vector2 imageSize = new(54, 54);
 		private readonly static Vector4 alertColor = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
-		private float mouseX = 0, mouseY = 0;
-		private int mouseIndex = -1;
-		private bool isItemClick = false;
-		private static int editIndex = -1;
-		private string nameText = "", priceText = "";
+		private const int groupWidth = 190, groupW = 5;
+		private bool firstDraw = false;
+		private int editIndex = -1, moreEditIndex = -1;
+		private string nameLabel = "", priceLabel = "";
 		private readonly List<PresetItem> itemList = Plugin.Instance.Configuration.PresetItemList;
 
 		private readonly TextureWrap? failureImage = Configuration.GetIcon(19);
@@ -27,10 +27,17 @@ namespace TradeBuddy.Window
 		{
 			if (!settingVisible)
 			{
+				firstDraw = true;
 				editIndex = -1;
 				return;
 			}
-
+			
+			//窗口启动时检查未获取价格的道具
+			if (firstDraw)
+			{
+				itemList.ForEach(item => { if (item.GetMinPrice() == -1) item.UpdateMinPrice(); });
+				firstDraw = false;
+			}
 			//ImGui.SetNextWindowSize(new Vector2(720, 640), ImGuiCond.Once);
 			if (ImGui.Begin(Plugin.Instance.Name + "插件设置", ref settingVisible))
 			{
@@ -134,6 +141,7 @@ namespace TradeBuddy.Window
 
 					ImGui.Unindent();
 				}
+
 				if (ImGui.CollapsingHeader("预期价格"))
 				{
 
@@ -148,18 +156,18 @@ namespace TradeBuddy.Window
 							clipboard = ImGui.GetClipboardText().Replace("\n", "").Replace("\r", "").Replace("\t", "").Trim().Replace("", "HQ");
 						}
 						catch (NullReferenceException) { }
-						nameText = "";
-						priceText = "0";
+						nameLabel = "";
+						priceLabel = "0";
 
 						foreach (char c in clipboard)
 						{
 							if (c >= '0' && c <= '9')
-								priceText += c;
+								priceLabel += c;
 							else
-								nameText += c;
+								nameLabel += c;
 						}
-						priceText = priceText.TrimStart('0');
-						priceText = priceText.Length == 0 ? "0" : priceText;
+						priceLabel = priceLabel.TrimStart('0');
+						priceLabel = priceLabel.Length == 0 ? "0" : priceLabel;
 					}
 
 					ImGui.SameLine();
@@ -174,9 +182,7 @@ namespace TradeBuddy.Window
 					ImGui.SameLine();
 					//刷新价格
 					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Sync))
-					{
-						itemList.ForEach(item => item.RefreshMinPrice());
-					}
+						itemList.ForEach(item => item.UpdateMinPrice());
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("重新获取所有价格(数据来自Universalis)");
 
 					//导出到剪贴板
@@ -221,27 +227,34 @@ namespace TradeBuddy.Window
 						bool save = false;
 						//保存设置
 						ImGui.SameLine();
-						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Check) && !string.IsNullOrEmpty(nameText)) save = true;
+						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Check) && !string.IsNullOrEmpty(nameLabel)) save = true;
 
 						//取消编辑
 						ImGui.SameLine();
 						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Times)) editIndex = -1;
 
-
-						ImGui.InputText("名字", ref nameText, 1024, ImGuiInputTextFlags.CharsNoBlank);
+						ImGui.InputText("名字", ref nameLabel, 1024, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) save = true;
 
 
-						ImGui.InputText("价格", ref priceText, 1024, ImGuiInputTextFlags.CharsNoBlank);
+						ImGui.InputText("价格", ref priceLabel, 1024, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) save = true;
 
-						if (save && Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(nameText) && editIndex != Plugin.Instance.Configuration.PresetItemDictionary[nameText])
+						var itemNameArray = new List<string>();
+						if(!string.IsNullOrEmpty(nameLabel))DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.Where(i => i.Name.ToString().Contains(nameLabel)).OrderBy(i => i.Name.ToString()).ToList().ForEach(i => itemNameArray.Add(i.Name.ToString()));
+
+						int current_index = -1;
+						string[] items = itemNameArray.ToArray();
+						if (ImGui.ListBox("##候选表", ref current_index, items, itemNameArray.Count, 3))
+							nameLabel = items[current_index];
+
+						if (save && Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != Plugin.Instance.Configuration.PresetItemDictionary[nameLabel])
 						{
 							ImGui.SetTooltip("物品与已有设定重复，无法添加");
 						}
 						else if (save)
 						{
-							if (nameText == "")
+							if (nameLabel == "")
 							{
 								itemList.RemoveAt(editIndex);
 								Plugin.Instance.Configuration.Save();
@@ -255,29 +268,26 @@ namespace TradeBuddy.Window
 
 									editIndex = itemList.Count - 1;
 								}
-								itemList[editIndex].ItemName = nameText;
-								itemList[editIndex].SetPriceStr(priceText.Replace("-", string.Empty).Replace(",", string.Empty));
+								itemList[editIndex].ItemName = nameLabel;
+								itemList[editIndex].SetPriceStr(priceLabel.Replace("-", string.Empty).Replace(",", string.Empty));
 							}
 							Plugin.Instance.Configuration.Save();
 							editIndex = -1;
 						}
 					}
 
-					if (ImGui.BeginTable("预期", 3, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
+					int lineIndex = 0;
+					for (int i = 0; i < itemList.Count; i++)
 					{
-
-						//ImGui.TableSetupColumn("##Column1", ImGuiTableColumnFlags.WidthFixed);
-						//ImGui.TableSetupColumn("##Column2", ImGuiTableColumnFlags.WidthFixed);
-						//ImGui.TableHeadersRow();
-
-						for (int i = 0; i < itemList.Count; i++)
+						if (ImGui.GetWindowWidth() < (groupWidth + groupW) * (lineIndex + 1) + 8)
 						{
-							//ImGui.TableNextRow(ImGuiTableRowFlags.None, 35);
+							lineIndex = 0;
+						}
+						if (lineIndex > 0) ImGui.SameLine(lineIndex * (groupWidth + groupW) + 8);
+						lineIndex++;
 
-							ImGui.TableNextColumn();
-							ImGui.BeginGroup();
-
-
+						if (ImGui.BeginChild("##item-" + i, new(groupWidth, imageSize.Y + 16), true))
+						{
 							if (itemList[i].GetIconId() > 0)
 							{
 								TextureWrap? texture = Configuration.GetIcon(itemList[i].GetIconId(), itemList[i].IsHQ());
@@ -288,6 +298,7 @@ namespace TradeBuddy.Window
 								if (failureImage != null) ImGui.Image(failureImage.ImGuiHandle, imageSize);
 								else ImGui.TextUnformatted("图标获取失败");
 							}
+
 							ImGui.SameLine();
 
 							ImGui.BeginGroup();
@@ -299,113 +310,93 @@ namespace TradeBuddy.Window
 								_ => $"<{itemList[i].GetMinPriceServer()}>{itemList[i].GetMinPrice()}"
 							};
 
-							
-								ImGui.TextUnformatted(itemList[i].GetMinPriceServer());
-								switch (itemList[i].GetMinPrice())
-								{
-									case -1:
-										ImGui.TextUnformatted("获取失败");
-										break;
-									case 0:
-										ImGui.TextUnformatted("获取中");
-										break;
-									default:
-										//市场出售价更低时显示黄色进行提醒
-										if (itemList[i].GetMinPrice() < itemList[i].EvaluatePrice())
-											ImGui.TextColored(alertColor, String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0'));
-										else
-											ImGui.TextUnformatted(String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0'));
-										break;
-								}
+
+							ImGui.TextUnformatted(itemList[i].GetMinPriceServer());
+							switch (itemList[i].GetMinPrice())
+							{
+								case -1:
+									ImGui.TextUnformatted("获取失败");
+									break;
+								case 0:
+									ImGui.TextUnformatted("获取中");
+									break;
+								default:
+									//市场出售价更低时显示黄色进行提醒
+									if (itemList[i].GetMinPrice() < itemList[i].EvaluatePrice())
+										ImGui.TextColored(alertColor, String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0'));
+									else
+										ImGui.TextUnformatted(String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0'));
+									break;
+							}
 
 							if (String.IsNullOrEmpty(itemList[i].GetPriceStr())) ImGui.TextUnformatted("<未设置>");
 
 							ImGui.EndGroup();
-							ImGui.EndGroup();
 
-							if (ImGui.IsItemHovered())
-							{
-								ImGui.BeginTooltip();
-								ImGui.TextUnformatted($"物品名: {itemList[i].ItemName}");
-								ImGui.TextUnformatted($"预设价格(价格/个): {itemList[i].GetPriceStr()}");
-								ImGui.TextUnformatted("大区最低: ");
-								ImGui.SameLine();
-								minPrice = itemList[i].GetMinPrice() switch
-								{
-									-1 => "获取失败",
-									0 => "获取中",
-									_ => $"<{itemList[i].GetMinPriceServer()}>" + String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0')
-								};
-								ImGui.TextUnformatted(minPrice);
-								if (itemList[i].GetMinPrice() > 0) ImGui.TextUnformatted($"更新时间: {itemList[i].GetMinPriceUpdateTimeStr()}");
-								ImGui.EndTooltip();
-							}
-							if (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-							{
-								editIndex = i;
-								nameText = itemList[i].ItemName;
-								priceText = itemList[i].GetPriceStr();
-							}
-							if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-							{
-								isItemClick = true;
-								mouseX = ImGui.GetMousePos().X;
-								mouseY = ImGui.GetMousePos().Y;
-								mouseIndex = i;
-							}
+							ImGui.EndChild();
 						}
-						ImGui.EndTable();
+
+						if (ImGui.IsItemHovered())
+						{
+							ImGui.BeginTooltip();
+							ImGui.TextUnformatted($"物品名: {itemList[i].ItemName}");
+							ImGui.TextUnformatted($"预设价格(价格/个): {itemList[i].GetPriceStr()}");
+							ImGui.TextUnformatted("大区最低: ");
+							ImGui.SameLine();
+							string minPrice = itemList[i].GetMinPrice() switch
+							{
+								-1 => "获取失败",
+								0 => "获取中",
+								_ => $"<{itemList[i].GetMinPriceServer()}>" + String.Format("{0:0,0}", itemList[i].GetMinPrice()).TrimStart('0')
+							};
+							ImGui.TextUnformatted(minPrice);
+							if (itemList[i].GetMinPrice() > 0) ImGui.TextUnformatted($"更新时间: {itemList[i].GetMinPriceUpdateTimeStr()}");
+							ImGui.EndTooltip();
+						}
+
+						if (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+						{
+							editIndex = i;
+							nameLabel = itemList[i].ItemName;
+							priceLabel = itemList[i].GetPriceStr();
+						}
+						if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+						{
+							ImGui.OpenPopup("##物品右键菜单");
+							moreEditIndex = i;
+						}
 					}
 				}
-				// 判断是否还是刚刚的点击事件
-				if (!ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-					isItemClick = false;
-				//详细编辑菜单
-				if (mouseIndex != -1)
+
+				if (ImGui.BeginPopup("##物品右键菜单", ImGuiWindowFlags.NoMove))
 				{
-					ImGui.SetNextWindowPos(new Vector2(mouseX, mouseY), ImGuiCond.Always);
-					ImGui.SetNextWindowBgAlpha(0.8f);
-					if (ImGui.Begin("编辑", ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize))
+					// 编辑当前物品
+					if (ImGuiComponents.IconButton(moreEditIndex, FontAwesomeIcon.Edit))
 					{
-						// 编辑当前物品
-						if (ImGuiComponents.IconButton(mouseIndex, FontAwesomeIcon.Edit))
-						{
-#if DEBUG
-							DalamudDll.ChatGui.Print($"编辑{mouseIndex}");
-#endif
-							editIndex = mouseIndex;
-							nameText = itemList[mouseIndex].ItemName;
-							priceText = itemList[mouseIndex].GetPriceStr();
-							mouseIndex = -1;
-						}
-						bool editHovered = ImGui.IsItemHovered();
-						// 重新获取当前物品的最低价格
-						ImGui.SameLine();
-						if (ImGuiComponents.IconButton(mouseIndex, FontAwesomeIcon.Sync))
-						{
-							itemList[mouseIndex].RefreshMinPrice();
-							mouseIndex = -1;
-						}
-						bool refreshHovered = ImGui.IsItemHovered();
-						// 删除当前物品
-						ImGui.SameLine();
-						if (ImGuiComponents.IconButton(mouseIndex, FontAwesomeIcon.Trash))
-						{
-							itemList.RemoveAt(mouseIndex);
-							Plugin.Instance.Configuration.Save();
-							editIndex = -1;
-							mouseIndex = -1;
-						}
-						bool deleteHovered = ImGui.IsItemHovered();
-						if (!editHovered && !refreshHovered && !deleteHovered && !isItemClick && (ImGui.IsMouseClicked(ImGuiMouseButton.Left) || ImGui.IsMouseClicked(ImGuiMouseButton.Right)))
-						{
-#if DEBUG
-							DalamudDll.ChatGui.Print("关闭右键菜单");
-#endif
-							mouseIndex = -1;
-						}
+						editIndex = moreEditIndex;
+						nameLabel = itemList[moreEditIndex].ItemName;
+						priceLabel = itemList[moreEditIndex].GetPriceStr();
+						ImGui.CloseCurrentPopup();
 					}
+					// 重新获取当前物品的最低价格
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(moreEditIndex, FontAwesomeIcon.Sync))
+					{
+						itemList[moreEditIndex].UpdateMinPrice();
+						ImGui.CloseCurrentPopup();
+					}
+					// 删除当前物品
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(moreEditIndex, FontAwesomeIcon.Trash))
+					{
+						itemList.RemoveAt(moreEditIndex);
+						Plugin.Instance.Configuration.Save();
+						editIndex = -1;
+						ImGui.CloseCurrentPopup();
+					}
+					ImGui.EndPopup();
 				}
+				ImGui.End();
 			}
 		}
 

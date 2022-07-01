@@ -1,6 +1,7 @@
 ﻿using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Components;
+using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using System;
@@ -128,7 +129,7 @@ namespace TradeBuddy
 				}
 				catch (Exception e)
 				{
-					DalamudDll.ChatGui.PrintError(e.ToString());
+					PluginLog.Error(e.ToString());
 				}
 
 				ImGui.Spacing();
@@ -144,7 +145,7 @@ namespace TradeBuddy
 				}
 				catch (Exception e)
 				{
-					DalamudDll.ChatGui.PrintError(e.ToString());
+					PluginLog.Error(e.ToString());
 				}
 
 				if (receiveChecked && giveChecked)//双方交易确认，进入最终确认状态
@@ -245,7 +246,7 @@ namespace TradeBuddy
 
 				ImGui.TableNextColumn();
 				ImGui.TextUnformatted(itemArray[i].name);
-				if(ImGui.IsItemHovered())ImGui.SetTooltip("预设：" + Plugin.Instance.Configuration.PresetItemList[i].GetPriceStr());
+				if (ImGui.IsItemHovered()) ImGui.SetTooltip("预设：" + Plugin.Instance.Configuration.PresetItemList[i].GetPriceStr());
 
 				string presetPriceName = itemArray[i].name;
 				//string presetPriceName = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->;
@@ -358,7 +359,7 @@ namespace TradeBuddy
 				{
 					if (Plugin.Instance.Configuration.TradeConfirmAlert)
 					{
-						DalamudDll.ChatGui.Print("[" + Plugin.Instance.Name + "]交易成功");
+						DalamudDll.ChatGui.Print($"[{Plugin.Instance.Name}]交易成功");
 					}
 					List<KeyValuePair<string, int>> giveItemList = new(), receiveItemList = new();
 					foreach (Item item in giveItem)
@@ -381,7 +382,7 @@ namespace TradeBuddy
 				{
 					if (Plugin.Instance.Configuration.TradeCancelAlert)
 					{
-						DalamudDll.ChatGui.PrintError("[" + Plugin.Instance.Name + "]交易取消");
+						DalamudDll.ChatGui.PrintError($"[{Plugin.Instance.Name}]交易取消");
 					}
 					List<KeyValuePair<string, int>> giveItemList = new(), receiveItemList = new();
 					foreach (Item item in giveItem)
