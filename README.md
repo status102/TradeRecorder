@@ -18,7 +18,7 @@ Record the content of the transaction and calculate the transaction amount accor
 
 - [x] 雇员出售列表颜色标注区分是否低于预期价格
 - [x] 市场板子标注预期的价格
-- [ ] 通过数据包或者sig获取交易itemId
+- [ ] 更换为通过数据包或者sig获取交易itemId
 
 ## Thanks
 
