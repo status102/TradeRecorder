@@ -27,7 +27,6 @@ namespace TradeBuddy.Window
 				var sellList = sellListForm->UldManager.NodeList[10];
 				if (sellList->GetAsAtkComponentNode()->Component->UldManager.NodeListCount == 17)
 				{
-
 					// todo 有时候会有个别无法绘制
 					for (int i = 1; i < 14; i++)
 					{
@@ -55,7 +54,9 @@ namespace TradeBuddy.Window
 							if (byteLen <= 24) {
 								StringBuilder sb = new ();
 								foreach (byte item in byteBuffer) sb.Append(' ').Append(PluginUI.intToHex[item / 16]).Append(PluginUI.intToHex[item % 16]);
+#if DEBUG
 								PluginLog.Error(String.Format("雇员出售列表解析错误len：{0:}，str：{1:}", byteLen, sb.ToString()));
+#endif
 							}
 							else
 							{
@@ -104,9 +105,6 @@ namespace TradeBuddy.Window
 									{
 										if (presetItem.ItemName == name)
 										{
-#if DEBUG
-											DalamudDll.ChatGui.Print($"{name}预期价{presetItem.EvaluatePrice()}");
-#endif
 											if (presetItem.EvaluatePrice() != 0)priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
 											break;
 										}

@@ -153,6 +153,7 @@ namespace TradeBuddy.Window
 							ImGui.TableHeadersRow();
 							for (int i = 0; i < Math.Max(tradeItem.giveItemArray.Length, tradeItem.receiveItemArray.Length); i++)
 							{
+								ImGui.TableNextRow();
 								ImGui.TableNextColumn();
 
 								// todo 历史记录增加图片
@@ -171,10 +172,11 @@ namespace TradeBuddy.Window
 							}
 							if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0)
 							{
-								ImGui.NextColumn();
+								ImGui.TableNextRow();
+								ImGui.TableNextColumn();
 								if (tradeItem.giveGil > 0) ImGui.Text(String.Format("金币: {0:0,0}", tradeItem.giveGil).TrimStart('0'));
 
-								ImGui.NextColumn();
+								ImGui.TableNextColumn();
 								if (tradeItem.receiveGil > 0) ImGui.Text(String.Format("金币: {0:0,0}", tradeItem.receiveGil).TrimStart('0'));
 							}
 

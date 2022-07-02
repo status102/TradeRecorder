@@ -14,10 +14,6 @@ Record the content of the transaction and calculate the transaction amount accor
 
 暂不支持多方案复合匹配，如交易数量为5个时匹配为2+3
 
-## Bug
-
-- 雇员出售列表偶尔有个别道具无法绘制颜色
-
 ## Todo
 
 - [x] 雇员出售列表颜色标注区分是否低于预期价格
