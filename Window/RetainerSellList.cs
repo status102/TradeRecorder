@@ -27,6 +27,7 @@ namespace TradeBuddy.Window
 				var sellList = sellListForm->UldManager.NodeList[10];
 				if (sellList->GetAsAtkComponentNode()->Component->UldManager.NodeListCount == 17)
 				{
+
 					// todo 有时候会有个别无法绘制
 					for (int i = 1; i < 14; i++)
 					{
@@ -70,6 +71,7 @@ namespace TradeBuddy.Window
 									{
 										//获取到雇员出售列表里面的价格
 										int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
+										
 										if (price >= priceList[name] && Plugin.Instance.Configuration.DrawRetainerSellListProper)
 										{
 											//雇员出售价格合适
@@ -83,6 +85,12 @@ namespace TradeBuddy.Window
 											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[0];
 											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[1];
 											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[2];
+										}
+										else
+										{
+											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.SellListDefaultColor[0];
+											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.SellListDefaultColor[1];
+											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.SellListDefaultColor[2];
 										}
 									}
 									catch (FormatException e)
@@ -103,6 +111,12 @@ namespace TradeBuddy.Window
 											break;
 										}
 									}
+								}
+								else
+								{
+									priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.SellListDefaultColor[0];
+									priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.SellListDefaultColor[1];
+									priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.SellListDefaultColor[2];
 								}
 							}
 						}

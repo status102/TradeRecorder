@@ -54,9 +54,11 @@ namespace TradeBuddy
 		public int[] RetainerSellListAlertColor = new int[] { 213, 28, 47 };
 
 		[NonSerialized]
-		public readonly int[] DefaultSellListProperColor = new int[] { 10, 187, 10 };
+		public readonly int[] SellListProperDefaultColor = new int[] { 10, 187, 10 };
 		[NonSerialized]
-		public readonly int[] DefaultSellListAlertColor = new int[] { 213, 28, 47 };
+		public readonly int[] SellListAlertDefaultColor = new int[] { 213, 28, 47 };
+		[NonSerialized]
+		public readonly int[] SellListDefaultColor = new int[] { 0xCC, 0xCC, 0xCC };
 
 
 		public List<PresetItem> PresetItemList = new();

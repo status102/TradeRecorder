@@ -109,7 +109,7 @@ namespace TradeBuddy.Window
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(0, FontAwesomeIcon.Reply))
 					{
-						Array.Copy(Plugin.Instance.Configuration.DefaultSellListProperColor, Plugin.Instance.Configuration.RetainerSellListProperColor, 3);
+						Array.Copy(Plugin.Instance.Configuration.SellListProperDefaultColor, Plugin.Instance.Configuration.RetainerSellListProperColor, 3);
 						Plugin.Instance.Configuration.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("重置");
@@ -137,7 +137,7 @@ namespace TradeBuddy.Window
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(1, FontAwesomeIcon.Reply))
 					{
-						Array.Copy(Plugin.Instance.Configuration.DefaultSellListAlertColor, Plugin.Instance.Configuration.RetainerSellListAlertColor, 3);
+						Array.Copy(Plugin.Instance.Configuration.SellListAlertDefaultColor, Plugin.Instance.Configuration.RetainerSellListAlertColor, 3);
 						Plugin.Instance.Configuration.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("重置");
