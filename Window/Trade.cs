@@ -26,7 +26,7 @@ namespace TradeBuddy
 			public Dictionary<int, int> priceList = new();
 		}
 		private readonly static Vector4[] color = new Vector4[] { new Vector4(1, 1, 1, 1), new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1) };
-		private readonly static float[] tableWidth = new float[] { 20, -1, 12, 150 };
+		private readonly static float[] tableWidth = new float[] { 20, -1, 120, 150 };
 		private readonly static int width = 480, height = 600;
 		private byte[] byteBuffer = new byte[100];
 		private int giveGil = 0, receiveGil = 0;
@@ -198,7 +198,7 @@ namespace TradeBuddy
 				//判断HQ，iconId以10开头的为HQ
 				if (iconIdStr.StartsWith("10"))
 				{
-					iconId = Convert.ToInt64(iconIdStr.Substring(2));
+					iconId = Convert.ToInt64(iconIdStr[2..]);
 
 					itemArray[i].iconId = iconId;
 					itemArray[i].isHQ = true;
@@ -246,7 +246,11 @@ namespace TradeBuddy
 
 				ImGui.TableNextColumn();
 				ImGui.TextUnformatted(itemArray[i].name);
-				if (ImGui.IsItemHovered()) ImGui.SetTooltip("预设：" + Plugin.Instance.Configuration.PresetItemList[i].GetPriceStr());
+				if (ImGui.IsItemHovered())
+				{
+					var itemPresetStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemArray[i].name]].GetPriceStr();
+					if (!string.IsNullOrEmpty(itemPresetStr)) ImGui.SetTooltip($"预设：{itemPresetStr}");
+				}
 
 				string presetPriceName = itemArray[i].name;
 				//string presetPriceName = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->;

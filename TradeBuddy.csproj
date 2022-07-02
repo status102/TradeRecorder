@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors></Authors>
+    <Authors>status102</Authors>
     <Company></Company>
-    <Version>0.0.1</Version>
+    <Version>0.0.1.2</Version>
     <Description></Description>
     <Copyright></Copyright>
     <PackageProjectUrl></PackageProjectUrl>
@@ -27,6 +27,26 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Data\**" />
     <EmbeddedResource Remove="Data\**" />
@@ -40,24 +60,31 @@
   <ItemGroup>
     <Reference Include="Dalamud">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\Dalamud.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="FFXIVClientStructs">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\FFXIVClientStructs.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\ImGui.NET.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="ImGuiScene">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\ImGuiScene.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Lumina">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\Lumina.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Lumina.Excel">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\Lumina.Excel.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\FFXIV\Dalamud\addon\Hooks\6.3.0.13\Newtonsoft.Json.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
     </Reference>
   </ItemGroup>
 

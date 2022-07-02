@@ -14,9 +14,12 @@ namespace TradeBuddy.Window
 {
 	public class Setting
 	{
+		/// <summary>
+		/// 每个道具的图片大小
+		/// </summary>
 		private readonly static Vector2 imageSize = new(54, 54);
 		private readonly static Vector4 alertColor = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
-		private const int groupWidth = 190, groupW = 5;
+		private const int itemGroupWidth = 190, itemGroupTer = 5;
 		private bool firstDraw = false;
 		private int editIndex = -1, moreEditIndex = -1;
 		private string nameLabel = "", priceLabel = "";
@@ -279,14 +282,14 @@ namespace TradeBuddy.Window
 					int lineIndex = 0;
 					for (int i = 0; i < itemList.Count; i++)
 					{
-						if (ImGui.GetWindowWidth() < (groupWidth + groupW) * (lineIndex + 1) + 8)
+						if (ImGui.GetWindowWidth() < (itemGroupWidth + itemGroupTer) * (lineIndex + 1) + 8)
 						{
 							lineIndex = 0;
 						}
-						if (lineIndex > 0) ImGui.SameLine(lineIndex * (groupWidth + groupW) + 8);
+						if (lineIndex > 0) ImGui.SameLine(lineIndex * (itemGroupWidth + itemGroupTer) + 8);
 						lineIndex++;
 
-						if (ImGui.BeginChild("##item-" + i, new(groupWidth, imageSize.Y + 16), true))
+						if (ImGui.BeginChild("##item-" + i, new(itemGroupWidth, imageSize.Y + 16), true))
 						{
 							if (itemList[i].GetIconId() > 0)
 							{

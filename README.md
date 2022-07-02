@@ -14,10 +14,15 @@ Record the content of the transaction and calculate the transaction amount accor
 
 暂不支持多方案复合匹配，如交易数量为5个时匹配为2+3
 
-## TODO
+## Bug
+
+- 雇员出售列表偶尔有个别道具无法绘制颜色
+
+## Todo
 
 - [x] 雇员出售列表颜色标注区分是否低于预期价格
 - [x] 市场板子标注预期的价格
+- [ ] 交易数量支持多方案复合匹配
 - [ ] 更换为通过数据包或者sig获取交易itemId
 
 ## Thanks
@@ -26,4 +31,4 @@ Record the content of the transaction and calculate the transaction amount accor
 
 ## 附
 
-第一个稍微正经一点的项目，试着学习版本控制以及各种规范，依旧会很丑陋就是了
+第一个稍微正经一点的项目，试着学习使用Git、版本控制、各种规范以及新玩意，依旧会很丑陋就是了
