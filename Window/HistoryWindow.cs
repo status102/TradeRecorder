@@ -98,7 +98,7 @@ namespace TradeBuddy.Window
 
 		public void DrawHistory(ref bool historyVisible)
 		{
-			if (!historyVisible) return;
+			if (!historyVisible || DalamudDll.ClientState.LocalPlayer == null) return;
 
 			playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
