@@ -54,7 +54,7 @@ namespace TradeBuddy.Window
 					if (!string.IsNullOrEmpty(priceHQStr)) priceHQStr = String.Format("  HQ：{0:}", priceHQStr);
 					if (!string.IsNullOrEmpty(priceHQStr) || !string.IsNullOrEmpty(priceNQStr))
 					{
-						itemName = String.Format("{0:}  预期价格-{1:}", itemName, (priceNQStr + priceHQStr)[2..]);
+						itemName = string.Format("{0:}  预期价格-{1:}", itemName, (priceNQStr + priceHQStr)[2..]);
 					}
 					sellItemNameNode->SetText(itemName);
 					sellItemNameNode->TextColor.R = 243;

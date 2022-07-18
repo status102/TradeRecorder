@@ -14,8 +14,8 @@ namespace TradeBuddy
 		private const string commandName = "/tb";
 		public static Plugin Instance { get; private set; }
 
-		public DalamudPluginInterface PluginInterface { get; init; }
-		public CommandManager CommandManager { get; init; }
+		[RequiredVersion("1.0")] public DalamudPluginInterface PluginInterface { get; init; }
+		[RequiredVersion("1.0")] public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
 		public PluginUI PluginUi { get; init; }
 
@@ -41,7 +41,7 @@ namespace TradeBuddy
 				HelpMessage = "/tb 打开历史记录" +"\n /tb config|cfg 打开设置窗口"
 			});
 #if DEBUG
-			DalamudDll.ChatGui.Print($"{Name}测试加载");
+			DalamudDll.ChatGui.Print($"[{Name}]加载完成");
 #endif
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -59,8 +59,8 @@ namespace TradeBuddy
 			string arg = args.Trim().Replace("\"", string.Empty);
 			if (string.IsNullOrEmpty(arg))
 			{
-				this.PluginUi.tradeOnceVisible = true;
-				this.PluginUi.historyVisible = true;
+				this.PluginUi.onceVisible = true;
+				this.PluginUi.historyVisible = !this.PluginUi.historyVisible;
 			}
 			if (arg == "cfg" || arg == "config")
 				this.PluginUi.SettingsVisible = true;

@@ -5,9 +5,6 @@ using ImGuiScene;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace TradeBuddy
 {
@@ -29,7 +26,7 @@ namespace TradeBuddy
 		[NonSerialized]
 		public bool StrictMode = true;
 		[NonSerialized]
-		public static int outtime = 30 * 1000;
+		public static int outOfTime = 30 * 1000;
 
 		public string TradeConfirmStr = "交易完成。";
 		public string TradeCancelStr = "交易取消。";
@@ -44,21 +41,31 @@ namespace TradeBuddy
 		/// 雇员出售价格过低时，修改单价颜色
 		/// </summary>
 		public bool DrawRetainerSellListAlert = true;
+
 		/// <summary>
-		/// 雇员出售价格合适提示颜色
+		/// 雇员出售列表，价格合适自定义颜色
 		/// </summary>
 		public int[] RetainerSellListProperColor = new int[] { 10, 187, 10 };
 		/// <summary>
-		/// 雇员出售价格过低提示颜色
+		/// 雇员出售列表，价格过低自定义颜色
 		/// </summary>
 		public int[] RetainerSellListAlertColor = new int[] { 213, 28, 47 };
 
 		[NonSerialized]
-		public readonly int[] SellListProperDefaultColor = new int[] { 10, 187, 10 };
+		/// <summary>
+		/// 雇员出售列表，价格合适默认颜色
+		/// </summary>
+		public readonly static int[] SellListProperDefaultColor = new int[] { 10, 187, 10 };
 		[NonSerialized]
-		public readonly int[] SellListAlertDefaultColor = new int[] { 213, 28, 47 };
+		/// <summary>
+		/// 雇员出售列表，价格过低默认颜色
+		/// </summary>
+		public readonly static int[] SellListAlertDefaultColor = new int[] { 213, 28, 47 };
 		[NonSerialized]
-		public readonly int[] SellListDefaultColor = new int[] { 0xCC, 0xCC, 0xCC };
+		/// <summary>
+		/// 雇员出售列表，价格默认颜色
+		/// </summary>
+		public readonly static int[] SellListDefaultColor = new int[] { 0xCC, 0xCC, 0xCC };
 
 
 		public List<PresetItem> PresetItemList = new();
@@ -72,27 +79,31 @@ namespace TradeBuddy
 
 		public class PresetItem
 		{
-			private CancellationTokenSource? cancel;
+			[Newtonsoft.Json.JsonIgnore]
+			public uint itemId { get; private set; } = 0;
 
-			private uint itemId = 0;
-			public uint GetItemId() => itemId;
-			private uint iconId = 0; // 0未找到
-			public uint GetIconId() => iconId;
-			private bool isHQ = false;
-			public bool IsHQ() => isHQ;
+			private string itemName = "";
+			public string ItemName { get => itemName; set { if (value != itemName) { itemName = value; Init(); } } }
+
+			[Newtonsoft.Json.JsonIgnore]
+			public uint iconId { get; private set; } = 0; // 0未找到
+
+			[Newtonsoft.Json.JsonIgnore]
+			public bool isHQ { get; private set; } = false;
+
 			/// <summary>
 			/// 返回Universalis上面获取到的价格
 			/// -1 获取失败
 			/// 0 获取中
 			/// </summary>
-			private int minPrice = -1;
-			/// <returns><see cref="minPrice"/></returns>
-			public int GetMinPrice() => minPrice;
+			[Newtonsoft.Json.JsonIgnore]
+			public int minPrice { get; private set; } = -2;
 
-			private string minPriceServer = "";
-			public string GetMinPriceServer() => minPriceServer;
-			private long minPriceUpdateTime = 0;
-			public long GetMinPriceUpdateTime() => minPriceUpdateTime;
+			[Newtonsoft.Json.JsonIgnore]
+			public string minPriceServer { get; private set; } = "";
+
+			[Newtonsoft.Json.JsonIgnore]
+			public long minPriceUpdateTime { get; private set; } = 0;
 			public string GetMinPriceUpdateTimeStr() => DateTimeOffset.FromUnixTimeMilliseconds(minPriceUpdateTime).LocalDateTime.ToString();
 
 			/// <summary>
@@ -106,8 +117,9 @@ namespace TradeBuddy
 			/// </summary>
 			public float EvaluatePrice()
 			{
-				if (PriceList.Count == 0) return 0;
-				if (evaluatePrice == 0) UpdateEvaluatePrice();
+
+				if (PriceList.Count == 0) evaluatePrice = 0;
+				else if (evaluatePrice == 0) UpdateEvaluatePrice();
 				return evaluatePrice;
 			}
 			/// <summary>
@@ -129,12 +141,8 @@ namespace TradeBuddy
 			public string GetPriceStr()
 			{
 				if (PriceList.Count == 1 && PriceList.ContainsKey(1)) return Convert.ToString(PriceList[1]);
-				StringBuilder priceStr = new();
-				foreach (KeyValuePair<int, int> pair in PriceList)
-				{
-					priceStr.Append(';').Append(String.Format("{0:0,0}", pair.Value).TrimStart('0')).Append('/').Append(String.Format("{0:0,0}", pair.Key).TrimStart('0'));
-				}
-				return priceStr.ToString().TrimStart(';');
+
+				return string.Join(';', PriceList.Select(pair => string.Format("{0:}/{1:}", string.Format("{0:0,0}", pair.Value).TrimStart('0'), string.Format("{0:0,0}", pair.Key).TrimStart('0'))));
 			}
 			public void SetPriceStr(string value)
 			{
@@ -167,10 +175,6 @@ namespace TradeBuddy
 				UpdateEvaluatePrice();
 
 			}
-
-			private string itemName = "";
-			public string ItemName { get => itemName; set { if (value != itemName) { itemName = value; Init(); } } }
-
 			public static int Sort(int x, int y)
 			{
 				if (x > y) return -1;
@@ -183,85 +187,36 @@ namespace TradeBuddy
 			/// </summary>
 			public void UpdateMinPrice()
 			{
-				if (cancel != null)
-				{
-					cancel.Cancel();
-					cancel.Dispose();
-					cancel = null;
-				}
 				minPriceServer = "";
-				var localPlayer = DalamudDll.ClientState.LocalPlayer;
-				if (localPlayer == null)
+				minPrice = 0;
+				minPriceUpdateTime = -1;
+				
+				if (DalamudDll.ClientState.LocalContentId != 0 && string.IsNullOrEmpty(dcName))
+				{
+					if (!DalamudDll.ClientState.IsLoggedIn) return;
+					dcName = GetWorldName();
+				}
+				if (string.IsNullOrEmpty(dcName))
 				{
 					minPrice = -1;
-					return;
+					//考虑一下要不要获取当前服务器而不是大区的价格
+					//itemId, currentWorld.Name
 				}
-
-				var currentWorld = localPlayer.CurrentWorld.GameData;
-				if (currentWorld == null)
-					minPrice = -1;
 				else
 				{
-					if (DalamudDll.ClientState.LocalContentId != 0 && string.IsNullOrEmpty(dcName))
+					Universalis.Client.GetCurrentlyShownView(dcName, itemId, price =>
 					{
-						if (!DalamudDll.ClientState.IsLoggedIn) return;
-
-						if (currentWorld.DataCenter.Value?.RowId != 0)
-							dcName = currentWorld.DataCenter.Value?.Name ?? "";
-						else if (cnWorldDC.ContainsKey((int)currentWorld.RowId))
-							dcName = cnWorldDC[(int)currentWorld.RowId];
-					}
-					if (string.IsNullOrEmpty(dcName))
-					{
-						/*
-						Task.Run(async () =>
-						{
-							var price = await UniversalisClient
-							.GetMarketData(itemId, currentWorld.Name, 1, 0, CancellationToken.None)
-							.ConfigureAwait(false);
-							if (price != null && price.itemID != 0 && price.itemID == itemId)
-							{
-								minPriceUpdateTime = price.lastUploadTime;
-								minPrice = isHQ ? price.minPriceHQ : price.minPriceNQ;
-								minPriceServer = price.listings?[0].worldName ?? "";
-							}
-						});*/
-					}
-					else
-					{
-						cancel = new CancellationTokenSource();
-						cancel.Token.Register(() =>
-						{
-							minPriceUpdateTime = -1;
+						if (price == null)
 							minPrice = -1;
-							minPriceServer = "";
-							if(cancel != null)cancel.Dispose();
-							cancel = null;
-						});
-						cancel.CancelAfter(outtime);
-						Task.Run(async () =>
+						else
 						{
-							minPrice = 0;
-							var price = await UniversalisClient
-								.GetMarketData(itemId, dcName, 1, 0, cancel.Token)
-								.ConfigureAwait(false);
-							if (cancel != null) cancel.Dispose();
-							cancel = null;
-							if (price != null && price.itemID != 0 && price.itemID == itemId)
-							{
-								minPriceUpdateTime = price.lastUploadTime;
-								minPrice = isHQ ? price.minPriceHQ : price.minPriceNQ;
-								minPriceServer = price.listings?[0].worldName ?? "";
-							}
-							else
-							{
-								minPriceUpdateTime = -1;
-								minPrice = -1;
-								minPriceServer = "";
-							}
-						}, cancel.Token);
-					}
+							minPriceUpdateTime = price.lastUploadTime;
+							minPrice = isHQ ? price.minPriceHQ : price.minPriceNQ;
+							minPriceServer = price.listings?[0].worldName ?? "";
+						}
+					});
 				}
+
 			}
 
 			public static PresetItem ParseFromString(string str)
@@ -299,23 +254,7 @@ namespace TradeBuddy
 				}
 			}
 
-			public PresetItem Clone() => new()
-			{
-				iconId = this.iconId,
-				isHQ = this.isHQ,
-				PriceList = this.PriceList,
-				minPrice = this.minPrice,
-				itemName = this.itemName
-			};
-
-			public void Dispose()
-			{
-				if (cancel != null) cancel.Cancel();
-				if (cancel != null) cancel.Dispose();
-				cancel = null;
-			}
-
-			public override string ToString() => String.Format("{0:}:{1:}", itemName, GetPriceStr());
+			public override string ToString() => $"{itemName}:{GetPriceStr()}";
 		}
 
 		public static TextureWrap? GetIcon(uint iconId) => GetIcon(iconId, false);
@@ -341,7 +280,6 @@ namespace TradeBuddy
 			DalamudDll.ClientState.Logout -= OnLogout;
 			foreach (TextureWrap? icon in iconList.Values) if (icon != null) icon.Dispose();
 			foreach (TextureWrap? icon in hqIconList.Values) if (icon != null) icon.Dispose();
-			foreach (PresetItem item in PresetItemList) item.Dispose();
 		}
 
 		public void OnLogin(object? sender, EventArgs e)
@@ -413,6 +351,16 @@ namespace TradeBuddy
 			RefreshKeySet();
 		}
 
+		public static string GetWorldName()
+		{
+			var currentWorld = DalamudDll.ClientState.LocalPlayer?.CurrentWorld.GameData;
+			if (currentWorld == null) return "";
+			if (currentWorld.DataCenter.Value?.RowId != 0)
+				return currentWorld.DataCenter.Value?.Name ?? "";
+			else if (cnWorldDC.ContainsKey((int)currentWorld.RowId))
+				return cnWorldDC[(int)currentWorld.RowId];
+			return "";
+		}
 		public void Save()
 		{
 			this.pluginInterface!.SavePluginConfig(this);

@@ -8,8 +8,8 @@ namespace TradeBuddy.Window
 {
 	public class RetainerSellList
 	{
-		public readonly static byte[] startByte = new byte[] { 0x02, 0x48, 0x04, 0xF2, 0x02, 0x25, 0x03, 0x02, 0x49, 0x04, 0xF2, 0x02, 0x26, 0x03 };
-		public readonly static byte[] endByte = new byte[] { 0x02, 0x49, 0x02, 0x01, 0x03, 0x02, 0x48, 0x02, 0x01, 0x03 };
+		public readonly static byte[] START_BYTE = new byte[] { 0x02, 0x48, 0x04, 0xF2, 0x02, 0x25, 0x03, 0x02, 0x49, 0x04, 0xF2, 0x02, 0x26, 0x03 };
+		public readonly static byte[] END_BYTE = new byte[] { 0x02, 0x49, 0x02, 0x01, 0x03, 0x02, 0x48, 0x02, 0x01, 0x03 };
 
 		private Dictionary<string, float> priceList = new();
 		public unsafe void Draw()
@@ -27,7 +27,6 @@ namespace TradeBuddy.Window
 				var sellList = sellListForm->UldManager.NodeList[10];
 				if (sellList->GetAsAtkComponentNode()->Component->UldManager.NodeListCount == 17)
 				{
-					// todo 有时候会有个别无法绘制
 					for (int i = 1; i < 14; i++)
 					{
 						var sellListItem = sellList->GetAsAtkComponentNode()->Component->UldManager.NodeList[i];
@@ -89,9 +88,9 @@ namespace TradeBuddy.Window
 										}
 										else
 										{
-											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.SellListDefaultColor[0];
-											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.SellListDefaultColor[1];
-											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.SellListDefaultColor[2];
+											priceNode->TextColor.R = (byte)Configuration.SellListDefaultColor[0];
+											priceNode->TextColor.G = (byte)Configuration.SellListDefaultColor[1];
+											priceNode->TextColor.B = (byte)Configuration.SellListDefaultColor[2];
 										}
 									}
 									catch (FormatException e)
@@ -112,9 +111,9 @@ namespace TradeBuddy.Window
 								}
 								else
 								{
-									priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.SellListDefaultColor[0];
-									priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.SellListDefaultColor[1];
-									priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.SellListDefaultColor[2];
+									priceNode->TextColor.R = (byte)Configuration.SellListDefaultColor[0];
+									priceNode->TextColor.G = (byte)Configuration.SellListDefaultColor[1];
+									priceNode->TextColor.B = (byte)Configuration.SellListDefaultColor[2];
 								}
 							}
 						}

@@ -3,9 +3,8 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using TradeBuddy.Universalis;
 
-namespace TradeBuddy
+namespace TradeBuddy.Universalis.API
 {
 	/// <summary>
 	/// Universalis API Client.
@@ -30,8 +29,8 @@ namespace TradeBuddy
 
 			var client = new HttpClient();
 			var res = await client
-				//.SendAsync(new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri),cancellationToken)
-				//.GetAsync(uriBuilder.Uri, cancellationToken)
+			  //.SendAsync(new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri),cancellationToken)
+			  //.GetAsync(uriBuilder.Uri, cancellationToken)
 			  .GetStreamAsync(uriBuilder.Uri, cancellationToken)
 			  .ConfigureAwait(false);
 

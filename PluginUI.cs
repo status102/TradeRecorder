@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game.Network;
-using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
@@ -14,13 +13,13 @@ namespace TradeBuddy
 	{
 		public readonly static char[] intToHex = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 		private Configuration configuration;
-		public HistoryWindow History { get; init; }
+		public History History { get; init; }
 		public Trade Trade { get; init; }
 		public Setting Setting { get; init; }
 
 		public RetainerSellList RetainerSellList { get; init; }
 		public ItemSearchResult ItemSearchResult { get; init; }
-		
+
 		public AtkArrayDataHolder* atkArrayDataHolder { get; init; } = null;
 
 		private bool visible = false;
@@ -39,41 +38,42 @@ namespace TradeBuddy
 
 		public bool historyVisible = false;//交易历史界面是否可见
 
-		public bool tradeOnceVisible = true;//保存单次交易时，监控窗口是否显示
+		public bool onceVisible = true;//保存单次交易时，监控窗口是否显示
+		/// <summary>
+		/// 交易时候的二次确认
+		/// </summary>
+		public bool twiceCheck = false;
 
-		public bool finalCheck = false;//在双方都确认的情况下进入最终交易确认
-
-		public StreamWriter? writer;
+		public StreamWriter? networkMessageWriter;
 
 		public unsafe PluginUI(Configuration configuration)
 		{
+			//网络包注释块
 			/*
 			try
 			{
 				FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, String.Format("网络包{0:}.log", DateTime.Now.ToString("yyyy-MM-dd HH_mm_ss"))), FileMode.OpenOrCreate);
 				if (stream != null && stream.CanWrite)
-					writer = new StreamWriter(stream);
+					networkMessageWriter = new StreamWriter(stream);
 			}
 			catch (IOException e)
 			{
-				writer = null;
+				networkMessageWriter = null;
 				DalamudDll.ChatGui.PrintError("网络包初始化：" + e.ToString());
-			}*/
+			}
+			*/
 			this.configuration = configuration;
-
 			Trade = new Trade();
-			History = new HistoryWindow();
+			History = new History();
 			Setting = new Setting();
 			RetainerSellList = new RetainerSellList();
 			ItemSearchResult = new ItemSearchResult();
-
-			//if (writer == null) DalamudDll.ChatGui.Print("network初始化错误");
 
 			var atkArrayDataHolder = &Framework.Instance()->GetUiModule()->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
 			if (atkArrayDataHolder != null && atkArrayDataHolder->StringArrayCount > 0) this.atkArrayDataHolder = atkArrayDataHolder;
 
 			DalamudDll.ChatGui.ChatMessage += Trade.MessageDelegate;
-			//DalamudDll.GameNetwork.NetworkMessage += networkMessageDelegate;
+			DalamudDll.GameNetwork.NetworkMessage += networkMessageDelegate;
 		}
 
 		public void Dispose()
@@ -81,29 +81,29 @@ namespace TradeBuddy
 			configuration.Dispose();
 			Setting.Dispose();
 			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
-			//DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
+			DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
 
-			if (writer != null)
+			if (networkMessageWriter != null)
 			{
-				writer.Flush();
-				writer.Close();
+				networkMessageWriter.Flush();
+				networkMessageWriter.Close();
 			}
 		}
 
 		public void Draw()
 		{
-
-			Trade.DrawTrade(configuration.ShowTrade, ref tradeOnceVisible, ref finalCheck, ref historyVisible, ref settingsVisible);
+			Trade.DrawTrade(configuration.ShowTrade, ref onceVisible, ref twiceCheck, ref historyVisible, ref settingsVisible);
 			History.DrawHistory(ref historyVisible);
 			Setting.DrawSetting(ref settingsVisible);
 			RetainerSellList.Draw();
 			ItemSearchResult.Draw();
 		}
-
+		
 		public unsafe void networkMessageDelegate(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId, NetworkMessageDirection direction)
 		{
-			if (writer != null)
+			if (networkMessageWriter != null)
 			{
+
 				StringBuilder stringBuilder = new StringBuilder();
 				byte databyte;
 				stringBuilder.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff "));
@@ -121,10 +121,10 @@ namespace TradeBuddy
 				for (int i = 0; i < 200; i++)
 				{
 					databyte = Marshal.ReadByte(dataPtr, i);
-					stringBuilder.Append(' ').Append(intToHex[databyte / 16]).Append(intToHex[databyte % 16]);
+					stringBuilder.Append('-').Append(intToHex[databyte / 16]).Append(intToHex[databyte % 16]);
 				}
-				writer.WriteLine(stringBuilder.ToString());
-				//writer.WriteLine(Encoding.UTF8.GetString(databyte));
+				networkMessageWriter.WriteLine(stringBuilder.ToString());
+				//networkMessageWriter.WriteLine(Encoding.UTF8.GetString(databyte));
 			}
 		}
 	}
