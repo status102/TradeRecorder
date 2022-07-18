@@ -1,6 +1,6 @@
 # TradeBuddy
-![![](https://img.shields.io/badge/dynamic/xml?label=version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy.csproj)]()
-![![](https://img.shields.io/github/v/release/status102/TradeBuddy.svg)](https://github.com/status102/TradeBuddy/releases/latest)
+[![](https://img.shields.io/badge/dynamic/xml?label=version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy.csproj)]()
+[![](https://img.shields.io/github/v/release/status102/TradeBuddy.svg)](https://github.com/status102/TradeBuddy/releases/latest)
 
 记录交易的内容并根据预先设定计算交易金额，不会自动填写进交易窗口。
 
@@ -20,6 +20,7 @@ Record the content of the transaction and calculate the transaction amount accor
 
 - [x] 雇员出售列表颜色标注区分是否低于预期价格
 - [x] 市场板子标注预期的价格
+- [x] 交易时即时查询交易物品价格
 - [ ] 交易数量支持多方案复合匹配
 - [ ] 更换为通过数据包或者sig获取交易itemId
 
