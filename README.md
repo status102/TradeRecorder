@@ -22,6 +22,7 @@ Record the content of the transaction and calculate the transaction amount accor
 - [x] 市场板子标注预期的价格
 - [x] 交易时即时查询交易物品价格
 - [x] 对同一目标多次交易时，累积记录多次交易内容
+- [x] 交易历史增加物品图标显示
 - [ ] 交易数量支持多方案复合匹配
 - [ ] 更换为通过数据包或者sig获取交易itemId
 

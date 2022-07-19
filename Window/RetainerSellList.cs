@@ -72,19 +72,19 @@ namespace TradeBuddy.Window
 										//获取到雇员出售列表里面的价格
 										int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
 										
-										if (price >= priceList[name] && Plugin.Instance.Configuration.DrawRetainerSellListProper)
+										if (price >= priceList[name] && TradeBuddy.Instance.Configuration.DrawRetainerSellListProper)
 										{
 											//雇员出售价格合适
-											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[0];
-											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[1];
-											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.RetainerSellListProperColor[2];
+											priceNode->TextColor.R = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[0];
+											priceNode->TextColor.G = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[1];
+											priceNode->TextColor.B = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[2];
 										}
-										else if (price < priceList[name] && Plugin.Instance.Configuration.DrawRetainerSellListAlert)
+										else if (price < priceList[name] && TradeBuddy.Instance.Configuration.DrawRetainerSellListAlert)
 										{
 											//雇员出售价格过低
-											priceNode->TextColor.R = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[0];
-											priceNode->TextColor.G = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[1];
-											priceNode->TextColor.B = (byte)Plugin.Instance.Configuration.RetainerSellListAlertColor[2];
+											priceNode->TextColor.R = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[0];
+											priceNode->TextColor.G = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[1];
+											priceNode->TextColor.B = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[2];
 										}
 										else
 										{
@@ -98,9 +98,9 @@ namespace TradeBuddy.Window
 										PluginLog.Error("雇员出售列表道具价格解析错误" + priceNode->NodeText.ToString() + "\n" + e.ToString());
 									}
 								}
-								else if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(name))
+								else if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(name))
 								{
-									foreach (Configuration.PresetItem presetItem in Plugin.Instance.Configuration.PresetItemList)
+									foreach (Configuration.PresetItem presetItem in TradeBuddy.Instance.Configuration.PresetItemList)
 									{
 										if (presetItem.ItemName == name)
 										{

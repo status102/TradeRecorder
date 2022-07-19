@@ -110,7 +110,7 @@ namespace TradeBuddy
 				return;
 			}
 			if (!tradeOnceVisible || !tradeVisible) return;
-			if (Plugin.Instance.PluginUi.atkArrayDataHolder == null || Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrayCount < 10) return;
+			if (TradeBuddy.Instance.PluginUi.atkArrayDataHolder == null || TradeBuddy.Instance.PluginUi.atkArrayDataHolder->StringArrayCount < 10) return;
 
 			var trade = (AtkUnitBase*)tradeAddess;
 			if (trade->UldManager.LoadedState != 3 || trade->UldManager.NodeListCount <= 0) return;//等待交易窗口加载完毕
@@ -286,7 +286,7 @@ namespace TradeBuddy
 				}
 				var image = Configuration.GetIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
 
-				byte* bytePtr = Plugin.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
+				byte* bytePtr = TradeBuddy.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
 
 				Array.Fill<byte>(byteBuffer, 0);
 
@@ -314,14 +314,14 @@ namespace TradeBuddy
 					itemArray[i].priceType = 0;
 					itemArray[i].priceName = strName;
 
-					if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name))
+					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name))
 					{ }
-					else if (itemArray[i].isHQ && Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
+					else if (itemArray[i].isHQ && TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
 					{
 						itemArray[i].priceType = 2;
 						itemArray[i].priceName = itemArray[i].name[0..^2];
 					}
-					else if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
+					else if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
 					{
 						itemArray[i].priceType = 1;
 						itemArray[i].priceName = itemArray[i].name + "HQ";
@@ -329,7 +329,7 @@ namespace TradeBuddy
 					//todo 增加联网价格获取
 					itemArray[i].priceList = new();
 					string priceName = itemArray[i].priceName;
-					var search = Plugin.Instance.Configuration.PresetItemList.Find(s => s.ItemName == priceName);
+					var search = TradeBuddy.Instance.Configuration.PresetItemList.Find(s => s.ItemName == priceName);
 					if (search != null) itemArray[i].priceList = search.PriceList;
 
 				}
@@ -341,7 +341,7 @@ namespace TradeBuddy
 				ImGui.TextUnformatted(itemArray[i].name);
 				if (ImGui.IsItemHovered())
 				{
-					var itemPresetStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemArray[i].name]].GetPriceStr();
+					var itemPresetStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemArray[i].name]].GetPriceStr();
 					if (!string.IsNullOrEmpty(itemPresetStr)) ImGui.SetTooltip($"{itemArray[i].priceName} 预设：{itemPresetStr}");
 				}
 
@@ -370,7 +370,7 @@ namespace TradeBuddy
 				{
 					if (itemArray[i].price == 0)
 					{
-						if (Plugin.Instance.Configuration.StrictMode)
+						if (TradeBuddy.Instance.Configuration.StrictMode)
 						{
 							var countList = itemArray[i].priceList.Keys.ToList();
 							countList.Sort(Configuration.PresetItem.Sort);
@@ -424,7 +424,7 @@ namespace TradeBuddy
 
 		public void MessageDelegate(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
 		{
-			if (Plugin.Instance.PluginUi.twiceCheck && type == XivChatType.SystemMessage)
+			if (TradeBuddy.Instance.PluginUi.twiceCheck && type == XivChatType.SystemMessage)
 			{
 				//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
 				//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
@@ -434,9 +434,9 @@ namespace TradeBuddy
 				DalamudDll.ChatGui.Print("=== Receive ===");
 				receiveItemList.ForEach(i => DalamudDll.ChatGui.Print($"{i.Key}-{i.Value}"));
 #endif
-				if (message.TextValue == Plugin.Instance.Configuration.TradeConfirmStr)
+				if (message.TextValue == TradeBuddy.Instance.Configuration.TradeConfirmStr)
 				{
-					Plugin.Instance.PluginUi.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+					TradeBuddy.Instance.PluginUi.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
 					if (string.IsNullOrEmpty(historyTarget) || historyTarget != tradeTarget)
 					{
 						historyTarget = tradeTarget;
@@ -464,24 +464,24 @@ namespace TradeBuddy
 						historyReceiveList[kp.Key] = kp.Value;
 					});
 
-					if (Plugin.Instance.Configuration.TradeConfirmAlert)
+					if (TradeBuddy.Instance.Configuration.TradeConfirmAlert)
 					{
 						DalamudDll.ChatGui.Print(string.Format("[{0:}]交易成功: ==>{1:}\n<<==   {2:}G, {3:}\n==>>   {4:}G, {5:}\n连续交易累积：\n<<==   {6:}G, {7:}\n==>>   {8:}G, {9:}",
-							Plugin.Instance.Name, tradeTarget,
+							TradeBuddy.Instance.Name, tradeTarget,
 							giveGil, string.Join(',', giveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							receiveGil, string.Join(',', receiveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							historyGiveGil, string.Join(',', historyGiveList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							historyReceiveGil, string.Join(',', historyReceiveList.Select(kp => $"{kp.Key}x{kp.Value}"))));
 					}
 				}
-				else if (message.TextValue == Plugin.Instance.Configuration.TradeCancelStr)
+				else if (message.TextValue == TradeBuddy.Instance.Configuration.TradeCancelStr)
 				{
-					Plugin.Instance.PluginUi.History.PushTradeHistory(false, tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+					TradeBuddy.Instance.PluginUi.History.PushTradeHistory(false, tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
 
-					if (Plugin.Instance.Configuration.TradeCancelAlert)
+					if (TradeBuddy.Instance.Configuration.TradeCancelAlert)
 					{
 						DalamudDll.ChatGui.Print(string.Format("[{0:}]交易取消: ==>{1:}\n<<==   {2:}G, {3:}\n==>>   {4:}G, {5:}",
-							Plugin.Instance.Name, tradeTarget,
+							TradeBuddy.Instance.Name, tradeTarget,
 							giveGil, string.Join(',', giveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							receiveGil, string.Join(',', receiveItemList.Select(kp => $"{kp.Key}x{kp.Value}"))));
 					}
