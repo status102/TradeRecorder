@@ -11,13 +11,21 @@ namespace TradeBuddy.Window
 		public readonly static byte[] START_BYTE = new byte[] { 0x02, 0x48, 0x04, 0xF2, 0x02, 0x25, 0x03, 0x02, 0x49, 0x04, 0xF2, 0x02, 0x26, 0x03 };
 		public readonly static byte[] END_BYTE = new byte[] { 0x02, 0x49, 0x02, 0x01, 0x03, 0x02, 0x48, 0x02, 0x01, 0x03 };
 
-		private Dictionary<string, float> priceList = new();
+		private Dictionary<string, float> _priceList = new();
+		private TradeBuddy _tradeBuddy;
+		private Configuration Config => _tradeBuddy.Configuration;
+
+		public RetainerSellList(TradeBuddy tradeBuddy)
+		{
+			_tradeBuddy = tradeBuddy;
+		}
+
 		public unsafe void Draw()
 		{
 			var sellListFormAddess = DalamudDll.GameGui.GetAddonByName("RetainerSellList", 1);
 			if (sellListFormAddess == IntPtr.Zero)
 			{
-				priceList.Clear();
+				_priceList.Clear();
 				return;
 			}
 
@@ -65,26 +73,26 @@ namespace TradeBuddy.Window
 								//todo 增加异常处理
 								name = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
 
-								if (priceList.ContainsKey(name))
+								if (_priceList.ContainsKey(name))
 								{
 									try
 									{
 										//获取到雇员出售列表里面的价格
 										int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
 										
-										if (price >= priceList[name] && TradeBuddy.Instance.Configuration.DrawRetainerSellListProper)
+										if (price >= _priceList[name] && Config.DrawRetainerSellListProper)
 										{
 											//雇员出售价格合适
-											priceNode->TextColor.R = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[0];
-											priceNode->TextColor.G = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[1];
-											priceNode->TextColor.B = (byte)TradeBuddy.Instance.Configuration.RetainerSellListProperColor[2];
+											priceNode->TextColor.R = (byte)Config.RetainerSellListProperColor[0];
+											priceNode->TextColor.G = (byte)Config.RetainerSellListProperColor[1];
+											priceNode->TextColor.B = (byte)Config.RetainerSellListProperColor[2];
 										}
-										else if (price < priceList[name] && TradeBuddy.Instance.Configuration.DrawRetainerSellListAlert)
+										else if (price < _priceList[name] && Config.DrawRetainerSellListAlert)
 										{
 											//雇员出售价格过低
-											priceNode->TextColor.R = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[0];
-											priceNode->TextColor.G = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[1];
-											priceNode->TextColor.B = (byte)TradeBuddy.Instance.Configuration.RetainerSellListAlertColor[2];
+											priceNode->TextColor.R = (byte)Config.RetainerSellListAlertColor[0];
+											priceNode->TextColor.G = (byte)Config.RetainerSellListAlertColor[1];
+											priceNode->TextColor.B = (byte)Config.RetainerSellListAlertColor[2];
 										}
 										else
 										{
@@ -98,13 +106,13 @@ namespace TradeBuddy.Window
 										PluginLog.Error("雇员出售列表道具价格解析错误" + priceNode->NodeText.ToString() + "\n" + e.ToString());
 									}
 								}
-								else if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(name))
+								else if (Config.PresetItemDictionary.ContainsKey(name))
 								{
-									foreach (Configuration.PresetItem presetItem in TradeBuddy.Instance.Configuration.PresetItemList)
+									foreach (Configuration.PresetItem presetItem in Config.PresetItemList)
 									{
 										if (presetItem.ItemName == name)
 										{
-											if (presetItem.EvaluatePrice() != 0)priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
+											if (presetItem.EvaluatePrice() != 0)_priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
 											break;
 										}
 									}

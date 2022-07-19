@@ -63,11 +63,11 @@ namespace TradeBuddy
 			}
 			*/
 			this.configuration = configuration;
-			Trade = new Trade();
+			Trade = new Trade(TradeBuddy.Instance);
 			History = new History(TradeBuddy.Instance);
 			Setting = new Setting(TradeBuddy.Instance);
-			RetainerSellList = new RetainerSellList();
-			ItemSearchResult = new ItemSearchResult();
+			RetainerSellList = new RetainerSellList(TradeBuddy.Instance);
+			ItemSearchResult = new ItemSearchResult(TradeBuddy.Instance);
 
 			var atkArrayDataHolder = &Framework.Instance()->GetUiModule()->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
 			if (atkArrayDataHolder != null && atkArrayDataHolder->StringArrayCount > 0) this.atkArrayDataHolder = atkArrayDataHolder;

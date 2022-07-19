@@ -8,6 +8,12 @@ namespace TradeBuddy.Window
 	public class ItemSearchResult
 	{
 		private bool addition = false;
+		private TradeBuddy _tradeBuddy;
+		private Configuration Config => _tradeBuddy.Configuration;
+		public ItemSearchResult(TradeBuddy tradeBuddy)
+		{
+			_tradeBuddy = tradeBuddy;
+		}
 
 		/// <summary>
 		/// 板子出售列表显示预期价格
@@ -44,11 +50,11 @@ namespace TradeBuddy.Window
 					string itemName = Encoding.UTF8.GetString(strBuffer);
 					string priceNQStr = "", priceHQStr = "";
 
-					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName))
-						priceNQStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemName]].GetPriceStr();
+					if (Config.PresetItemDictionary.ContainsKey(itemName))
+						priceNQStr = Config.PresetItemList[Config.PresetItemDictionary[itemName]].GetPriceStr();
 
-					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName + "HQ"))
-						priceHQStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemName + "HQ"]].GetPriceStr();
+					if (Config.PresetItemDictionary.ContainsKey(itemName + "HQ"))
+						priceHQStr = Config.PresetItemList[Config.PresetItemDictionary[itemName + "HQ"]].GetPriceStr();
 
 					if (!string.IsNullOrEmpty(priceNQStr)) priceNQStr = String.Format("  NQ：{0:}", priceNQStr);
 					if (!string.IsNullOrEmpty(priceHQStr)) priceHQStr = String.Format("  HQ：{0:}", priceHQStr);

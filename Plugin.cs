@@ -14,8 +14,8 @@ namespace TradeBuddy
 		private const string commandName = "/tb";
 		public static TradeBuddy Instance { get; private set; }
 
-		[RequiredVersion("1.0")] public DalamudPluginInterface PluginInterface { get; init; }
-		[RequiredVersion("1.0")] public CommandManager CommandManager { get; init; }
+		public DalamudPluginInterface PluginInterface { get; init; }
+		public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
 		public PluginUI PluginUi { get; init; }
 

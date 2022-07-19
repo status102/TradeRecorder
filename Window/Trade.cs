@@ -17,7 +17,16 @@ namespace TradeBuddy
 	{
 		public class Item
 		{
-			public long iconId = -1;
+			private uint _iconId = 0;
+			public uint iconId
+			{
+				get => _iconId; set
+				{
+					_iconId = value;
+					icon = Configuration.GetIcon(iconId, isHQ);
+				}
+			}
+			public TextureWrap? icon { get; private set; }
 			public bool isHQ = false;
 			public string name = "";
 			public int count = 0;
@@ -85,6 +94,10 @@ namespace TradeBuddy
 		private const int Row_Height = 20;
 		private readonly static Vector2 Image_Size = new(20, 20);
 		private readonly TextureWrap? Gil_Image = Configuration.GetIcon(65002, false);
+		private TradeBuddy _tradeBuddy;
+		private Configuration Config => _tradeBuddy.Configuration;
+		private PluginUI TradeUI => _tradeBuddy.PluginUi;
+
 		private byte[] byteBuffer = new byte[200];
 		private Item[] giveItem = new Item[5] { new(), new(), new(), new(), new() };
 		private Item[] receiveItem = new Item[5] { new(), new(), new(), new(), new() };
@@ -100,17 +113,21 @@ namespace TradeBuddy
 		private int historyGiveGil = 0, historyReceiveGil = 0;
 		private Dictionary<string, int> historyGiveList = new(), historyReceiveList = new();
 
-		public unsafe void DrawTrade(bool tradeVisible, ref bool tradeOnceVisible, ref bool twiceCheck, ref bool historyVisible, ref bool settingVisivle)
+		public Trade(TradeBuddy tradeBuddy)
+		{
+			_tradeBuddy = tradeBuddy;
+		}
+		public unsafe void DrawTrade(bool tradeVisible, ref bool _tradeOnceVisible, ref bool twiceCheck, ref bool historyVisible, ref bool settingVisivle)
 		{
 			var tradeAddess = DalamudDll.GameGui.GetAddonByName("Trade", 1);
 			if (tradeAddess == IntPtr.Zero)
 			{
-				tradeOnceVisible = true;//交易窗口关闭后重置单次关闭设置
+				_tradeOnceVisible = true;//交易窗口关闭后重置单次关闭设置
 				twiceCheck = false;//二次确认时取消
 				return;
 			}
-			if (!tradeOnceVisible || !tradeVisible) return;
-			if (TradeBuddy.Instance.PluginUi.atkArrayDataHolder == null || TradeBuddy.Instance.PluginUi.atkArrayDataHolder->StringArrayCount < 10) return;
+			if (!_tradeOnceVisible || !tradeVisible) return;
+			if (TradeUI.atkArrayDataHolder == null || TradeUI.atkArrayDataHolder->StringArrayCount < 10) return;
 
 			var trade = (AtkUnitBase*)tradeAddess;
 			if (trade->UldManager.LoadedState != 3 || trade->UldManager.NodeListCount <= 0) return;//等待交易窗口加载完毕
@@ -118,7 +135,7 @@ namespace TradeBuddy
 
 			ImGui.SetNextWindowSize(new Vector2(Width, Height), ImGuiCond.Appearing);
 			ImGui.SetNextWindowPos(new Vector2(trade->X - Width, trade->Y), ImGuiCond.Appearing);
-			if (ImGui.Begin("玩家交易", ref tradeOnceVisible, ImGuiWindowFlags.NoCollapse))
+			if (ImGui.Begin("玩家交易", ref _tradeOnceVisible, ImGuiWindowFlags.NoCollapse))
 			{
 				var receiveTarget = trade->UldManager.NodeList[20]->GetAsAtkTextNode()->NodeText;
 				var receiveMoney = trade->UldManager.NodeList[6]->GetAsAtkTextNode();
@@ -188,7 +205,7 @@ namespace TradeBuddy
 
 				try
 				{
-					DrowTradeTable(ref giveGil, 0, giveResNode, giveMoney, ref giveItem);
+					DrowTradeTable(ref twiceCheck, ref giveGil, 0, giveResNode, giveMoney, ref giveItem);
 				}
 				catch (Exception e)
 				{
@@ -204,7 +221,7 @@ namespace TradeBuddy
 					ImGuiComponents.TextWithLabel(tradeTarget + " -->", "");
 				try
 				{
-					DrowTradeTable(ref receiveGil, 5, receiveResNode, receiveMoney, ref receiveItem);
+					DrowTradeTable(ref twiceCheck, ref receiveGil, 5, receiveResNode, receiveMoney, ref receiveItem);
 				}
 				catch (Exception e)
 				{
@@ -235,7 +252,7 @@ namespace TradeBuddy
 		}
 
 		//绘制交易物品表格
-		private unsafe void DrowTradeTable(ref int gil, int offset, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray)
+		private unsafe void DrowTradeTable(ref bool twiceCheck, ref int gil, int offset, AtkResNode*[] atkResNodeList, AtkTextNode* gilTextNode, ref Item[] itemArray)
 		{
 			ImGui.BeginTable("交易栏", Header_Title.Length, ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV);
 
@@ -260,88 +277,82 @@ namespace TradeBuddy
 					itemArray[i] = new();
 					continue;
 				}
+
 				AtkResNode* resNode = atkResNodeList[i];
-				long iconId = ((AtkComponentIcon*)resNode->GetComponent())->IconId;
-
-				//放入交易格子中再取消时，iconId会残留为之前的数值
-				if (!resNode->IsVisible || iconId < 1)
+				if (!twiceCheck)
 				{
-					itemArray[i] = new();
-					continue;
-				}
+					long iconId = ((AtkComponentIcon*)resNode->GetComponent())->IconId;
 
-				string iconIdStr = Convert.ToString(iconId);
-
-				//判断HQ，iconId以10开头的为HQ
-				if (iconIdStr.StartsWith("10"))
-				{
-
-					itemArray[i].iconId = Convert.ToInt64(iconIdStr[2..]);
-					itemArray[i].isHQ = true;
-				}
-				else
-				{
-					itemArray[i].iconId = Convert.ToInt64(iconIdStr);
-					itemArray[i].isHQ = false;
-				}
-				var image = Configuration.GetIcon((uint)itemArray[i].iconId, itemArray[i].isHQ);
-
-				byte* bytePtr = TradeBuddy.Instance.PluginUi.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
-
-				Array.Fill<byte>(byteBuffer, 0);
-
-				int len = 0;
-				for (int index = 0; index < byteBuffer.Length && bytePtr[index] != 0; index++)
-				{
-					len = index + 1;
-					byteBuffer[index] = bytePtr[index];
-				}
-				if (len <= 24)
-				{
-					itemArray[i] = new();
-					continue;
-				}
-
-				byte[] strBuffer = new byte[len - 24];
-				//前面抛弃14字节，后面抛弃10字节
-				Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
-
-				var strName = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
-				if (itemArray[i].name != strName)
-				{
-					itemArray[i].name = strName;
-					itemArray[i].price = 0;
-					itemArray[i].priceType = 0;
-					itemArray[i].priceName = strName;
-
-					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name))
-					{ }
-					else if (itemArray[i].isHQ && TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
+					//放入交易格子中再取消时，iconId会残留为之前的数值
+					if (!resNode->IsVisible || iconId < 1)
 					{
-						itemArray[i].priceType = 2;
-						itemArray[i].priceName = itemArray[i].name[0..^2];
+						itemArray[i] = new();
+						continue;
 					}
-					else if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
+
+					byte* bytePtr = TradeUI.atkArrayDataHolder->StringArrays[9]->StringArray[offset + i];
+
+					Array.Fill<byte>(byteBuffer, 0);
+					int len = 0;
+					for (int index = 0; index < byteBuffer.Length && bytePtr[index] != 0; index++)
 					{
-						itemArray[i].priceType = 1;
-						itemArray[i].priceName = itemArray[i].name + "HQ";
+						len = index + 1;
+						byteBuffer[index] = bytePtr[index];
 					}
-					//todo 增加联网价格获取
-					itemArray[i].priceList = new();
-					string priceName = itemArray[i].priceName;
-					var search = TradeBuddy.Instance.Configuration.PresetItemList.Find(s => s.ItemName == priceName);
-					if (search != null) itemArray[i].priceList = search.PriceList;
+					if (len <= 24)
+					{
+						itemArray[i] = new();
+						continue;
+					}
 
+					byte[] strBuffer = new byte[len - 24];
+					//前面抛弃14字节，后面抛弃10字节
+					Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
+
+					var strName = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
+					if (itemArray[i].name != strName)
+					{
+						string iconIdStr = Convert.ToString(iconId);
+						//iconId以10开头的为HQ
+						if (itemArray[i].isHQ = iconIdStr.StartsWith("10"))
+							itemArray[i].iconId = uint.Parse(iconIdStr[2..]);
+						else
+							itemArray[i].iconId = (uint)iconId;
+
+						itemArray[i].name = strName;
+						itemArray[i].price = 0;
+						itemArray[i].priceType = 0;
+						itemArray[i].priceName = strName;
+
+						if (Config.PresetItemDictionary.ContainsKey(itemArray[i].name))
+						{ }
+						else if (itemArray[i].isHQ && Config.PresetItemDictionary.ContainsKey(itemArray[i].name[0..^2]))
+						{
+							itemArray[i].priceType = 2;
+							itemArray[i].priceName = itemArray[i].name[0..^2];
+						}
+						else if (Config.PresetItemDictionary.ContainsKey(itemArray[i].name + "HQ"))
+						{
+							itemArray[i].priceType = 1;
+							itemArray[i].priceName = itemArray[i].name + "HQ";
+						}
+						//todo 增加联网价格获取
+						itemArray[i].priceList = new();
+						string priceName = itemArray[i].priceName;
+						var search = Config.PresetItemList.Find(s => s.ItemName == priceName);
+						if (search != null) itemArray[i].priceList = search.PriceList;
+
+					}
 				}
-
 				ImGui.TableNextColumn();
-				if (image != null) ImGui.Image(image.ImGuiHandle, Image_Size);
+				var icon = itemArray[i].icon;
+				if (icon != null) ImGui.Image(icon.ImGuiHandle, Image_Size);
 
 				ImGui.TableNextColumn();
 				ImGui.TextUnformatted(itemArray[i].name);
 				if (ImGui.IsItemHovered())
 				{
-					var itemPresetStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemArray[i].name]].GetPriceStr();
+					var itemPresetStr = Config.PresetItemList[Config.PresetItemDictionary[itemArray[i].name]].GetPriceStr();
 					if (!string.IsNullOrEmpty(itemPresetStr)) ImGui.SetTooltip($"{itemArray[i].priceName} 预设：{itemPresetStr}");
 				}
 
@@ -370,7 +381,7 @@ namespace TradeBuddy
 				{
 					if (itemArray[i].price == 0)
 					{
-						if (TradeBuddy.Instance.Configuration.StrictMode)
+						if (Config.StrictMode)
 						{
 							var countList = itemArray[i].priceList.Keys.ToList();
 							countList.Sort(Configuration.PresetItem.Sort);
@@ -393,7 +404,7 @@ namespace TradeBuddy
 				}
 
 				ImGui.TableNextColumn();
-				ImGui.TextUnformatted( itemArray[i].minPriceStr);
+				ImGui.TextUnformatted(itemArray[i].minPriceStr);
 				if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{itemArray[i].minPriceStr}<{itemArray[i].minPriceServer}>");
 			}
 
@@ -424,7 +435,7 @@ namespace TradeBuddy
 
 		public void MessageDelegate(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
 		{
-			if (TradeBuddy.Instance.PluginUi.twiceCheck && type == XivChatType.SystemMessage)
+			if (TradeUI.twiceCheck && type == XivChatType.SystemMessage)
 			{
 				//Type：SystemMessage；sid：0；sender：；msg：交易完成。；isHand：False
 				//Type：SystemMessage；sid：0；sender：；msg：交易取消。；isHand：False
@@ -434,9 +445,9 @@ namespace TradeBuddy
 				DalamudDll.ChatGui.Print("=== Receive ===");
 				receiveItemList.ForEach(i => DalamudDll.ChatGui.Print($"{i.Key}-{i.Value}"));
 #endif
-				if (message.TextValue == TradeBuddy.Instance.Configuration.TradeConfirmStr)
+				if (message.TextValue == Config.TradeConfirmStr)
 				{
-					TradeBuddy.Instance.PluginUi.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+					TradeUI.History.PushTradeHistory(tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
 					if (string.IsNullOrEmpty(historyTarget) || historyTarget != tradeTarget)
 					{
 						historyTarget = tradeTarget;
@@ -449,39 +460,39 @@ namespace TradeBuddy
 
 					historyGiveGil += giveGil;
 					historyReceiveGil += receiveGil;
-					giveItemList.ForEach(kp =>
+					giveItemList.ForEach(pair =>
 					{
-						//if (historyGiveList.ContainsKey(kp.Key))
-						//historyGiveList[kp.Key] += kp.Value;
-						//else
-						historyGiveList[kp.Key] = kp.Value;
+						if (historyGiveList.ContainsKey(pair.Key))
+							historyGiveList[pair.Key] += pair.Value;
+						else
+							historyGiveList[pair.Key] = pair.Value;
 					});
-					receiveItemList.ForEach(kp =>
-					{/*
-						if (historyReceiveList.ContainsKey(kp.Key))
-							historyReceiveList[kp.Key] += kp.Value;
-						else*/
-						historyReceiveList[kp.Key] = kp.Value;
+					receiveItemList.ForEach(pair =>
+					{
+						if (historyReceiveList.ContainsKey(pair.Key))
+							historyReceiveList[pair.Key] += pair.Value;
+						else
+							historyReceiveList[pair.Key] = pair.Value;
 					});
 
-					if (TradeBuddy.Instance.Configuration.TradeConfirmAlert)
+					if (Config.TradeConfirmAlert)
 					{
 						DalamudDll.ChatGui.Print(string.Format("[{0:}]交易成功: ==>{1:}\n<<==   {2:}G, {3:}\n==>>   {4:}G, {5:}\n连续交易累积：\n<<==   {6:}G, {7:}\n==>>   {8:}G, {9:}",
-							TradeBuddy.Instance.Name, tradeTarget,
+							_tradeBuddy.Name, tradeTarget,
 							giveGil, string.Join(',', giveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							receiveGil, string.Join(',', receiveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							historyGiveGil, string.Join(',', historyGiveList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							historyReceiveGil, string.Join(',', historyReceiveList.Select(kp => $"{kp.Key}x{kp.Value}"))));
 					}
 				}
-				else if (message.TextValue == TradeBuddy.Instance.Configuration.TradeCancelStr)
+				else if (message.TextValue == Config.TradeCancelStr)
 				{
-					TradeBuddy.Instance.PluginUi.History.PushTradeHistory(false, tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
+					TradeUI.History.PushTradeHistory(false, tradeTarget, giveGil, receiveGil, giveItemList, receiveItemList);
 
-					if (TradeBuddy.Instance.Configuration.TradeCancelAlert)
+					if (Config.TradeCancelAlert)
 					{
 						DalamudDll.ChatGui.Print(string.Format("[{0:}]交易取消: ==>{1:}\n<<==   {2:}G, {3:}\n==>>   {4:}G, {5:}",
-							TradeBuddy.Instance.Name, tradeTarget,
+							_tradeBuddy.Name, tradeTarget,
 							giveGil, string.Join(',', giveItemList.Select(kp => $"{kp.Key}x{kp.Value}")),
 							receiveGil, string.Join(',', receiveItemList.Select(kp => $"{kp.Key}x{kp.Value}"))));
 					}

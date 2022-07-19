@@ -39,7 +39,7 @@ namespace TradeBuddy.Window
 			{
 				public string name;
 				public int count;
-				private ushort iconId  = 0;
+				private ushort iconId = 0;
 				private bool isHQ;
 
 				public TextureWrap? icon { get; private set; }
@@ -96,76 +96,86 @@ namespace TradeBuddy.Window
 
 		public void DrawHistory(ref bool historyVisible)
 		{
-			if (!historyVisible) return;
+			if (!historyVisible)
+			{
+				if (_edit)
+				{
+					Task.Run(() => { EditHistory(); ReadHistory(); });
+				}
+				return;
+			}
 
-			if (_refresh) ReadHistory();
+			if (_refresh) { _refresh = false; Task.Run(() => ReadHistory()); }
 
 			ImGui.SetNextWindowSize(new Vector2(480, 600), ImGuiCond.FirstUseEver);
-			if (ImGui.Begin("交易历史记录", ref historyVisible))
+			if (ImGui.Begin("交易历史记录", ref historyVisible, ImGuiWindowFlags.NoScrollbar))
 			{
 				if (ImGui.Button("全部清除")) ClearHistory();
 
-				for (int index = 0; index < _tradeHistoryList.Count; index++)
+				if (ImGui.BeginChild("##历史清单"))
 				{
-					TradeHistory tradeItem = _tradeHistoryList[index];
-
-					var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
-					if (!tradeItem.isSuccess) title += "  (取消)";
-					if (ImGui.CollapsingHeader(title.ToString(), ref tradeItem.visible))
+					for (int index = 0; index < _tradeHistoryList.Count; index++)
 					{
-						if (ImGui.BeginTable("histroy", 2, ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
+						TradeHistory tradeItem = _tradeHistoryList[index];
+
+						var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
+						if (!tradeItem.isSuccess) title += "  (取消)";
+						if (ImGui.CollapsingHeader(title.ToString(), ref tradeItem.visible))
 						{
-							ImGui.TableSetupColumn("支付");
-							ImGui.TableSetupColumn("接收");
-							ImGui.TableHeadersRow();
-							for (int i = 0; i < Math.Max(tradeItem.giveItemArray.Length, tradeItem.receiveItemArray.Length); i++)
+							if (ImGui.BeginTable("histroy", 2, ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
 							{
-								ImGui.TableNextRow();
-								ImGui.TableNextColumn();
-
-								if (tradeItem.giveItemArray.Length > i)
+								ImGui.TableSetupColumn("支付");
+								ImGui.TableSetupColumn("接收");
+								ImGui.TableHeadersRow();
+								for (int i = 0; i < Math.Max(tradeItem.giveItemArray.Length, tradeItem.receiveItemArray.Length); i++)
 								{
-									var icon = tradeItem.giveItemArray[i].icon;
-									if (icon != null)
+									ImGui.TableNextRow();
+									ImGui.TableNextColumn();
+
+									if (tradeItem.giveItemArray.Length > i)
 									{
-										ImGui.Image(icon.ImGuiHandle, Img_Size);
-										ImGui.SameLine();
+										var icon = tradeItem.giveItemArray[i].icon;
+										if (icon != null)
+										{
+											ImGui.Image(icon.ImGuiHandle, Img_Size);
+											ImGui.SameLine();
+										}
+										ImGui.TextUnformatted(tradeItem.giveItemArray[i].ToShowString());
 									}
-									ImGui.TextUnformatted(tradeItem.giveItemArray[i].ToShowString());
+
+									ImGui.TableNextColumn();
+									if (tradeItem.receiveItemArray.Length > i)
+									{
+										var icon = tradeItem.receiveItemArray[i].icon;
+										if (icon != null)
+										{
+											ImGui.Image(icon.ImGuiHandle, Img_Size);
+											ImGui.SameLine();
+										}
+										ImGui.TextUnformatted(tradeItem.receiveItemArray[i].ToShowString());
+									}
+
+								}
+								if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0)
+								{
+									ImGui.TableNextRow();
+									ImGui.TableNextColumn();
+									if (tradeItem.giveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.giveGil).TrimStart('0'));
+
+									ImGui.TableNextColumn();
+									if (tradeItem.receiveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.receiveGil).TrimStart('0'));
 								}
 
-								ImGui.TableNextColumn();
-								if (tradeItem.receiveItemArray.Length > i)
-								{
-									var icon = tradeItem.receiveItemArray[i].icon;
-									if (icon != null)
-									{
-										ImGui.Image(icon.ImGuiHandle, Img_Size);
-										ImGui.SameLine();
-									}
-									ImGui.TextUnformatted(tradeItem.receiveItemArray[i].ToShowString());
-								}
-
+								ImGui.EndTable();
 							}
-							if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0)
-							{
-								ImGui.TableNextRow();
-								ImGui.TableNextColumn();
-								if (tradeItem.giveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.giveGil).TrimStart('0'));
-
-								ImGui.TableNextColumn();
-								if (tradeItem.receiveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.receiveGil).TrimStart('0'));
-							}
-
-							ImGui.EndTable();
 						}
-					}
-					//删除记录
-					if (!tradeItem.visible) _edit = true;
+						//删除记录
+						if (!tradeItem.visible) _edit = true;
 
+					}
 				}
 			}
-			if (_edit) EditHistory();
+
 		}
 
 		public void PushTradeHistory(string targetName, int giveGil, int receiveGil, List<KeyValuePair<string, int>> giveItemArray, List<KeyValuePair<string, int>> receiveItemArray) => PushTradeHistory(true, targetName, giveGil, receiveGil, giveItemArray, receiveItemArray);

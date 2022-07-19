@@ -7,11 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using static TradeBuddy.Configuration;
 
 namespace TradeBuddy.Window
 {
-	public class Setting :IDisposable
+	public class Setting : IDisposable
 	{
 		/// <summary>
 		/// 每个道具的图片大小
@@ -22,17 +21,18 @@ namespace TradeBuddy.Window
 		private bool firstDraw = false;
 		private int editIndex = -1, moreEditIndex = -1;
 		private string nameLabel = "", priceLabel = "";
-		private readonly List<PresetItem> itemList;
+		private readonly List<Configuration.PresetItem> itemList;
 		private readonly TextureWrap? failureImage = Configuration.GetIcon(19);
 		private TradeBuddy tradeBuddy;
+		private Configuration Config => Config;
 		public Setting(TradeBuddy tradeBuddy)
 		{
 			this.tradeBuddy = tradeBuddy;
 			itemList = tradeBuddy.Configuration.PresetItemList;
 		}
-		public void DrawSetting(ref bool settingVisible)
+		public void DrawSetting(ref bool _settingVisible)
 		{
-			if (!settingVisible)
+			if (!_settingVisible)
 			{
 				firstDraw = true;
 				editIndex = -1;
@@ -46,103 +46,69 @@ namespace TradeBuddy.Window
 				firstDraw = false;
 			}
 			//ImGui.SetNextWindowSize(new Vector2(720, 640), ImGuiCond.Once);
-			if (ImGui.Begin(tradeBuddy.Name + "插件设置", ref settingVisible))
+			if (ImGui.Begin(tradeBuddy.Name + "插件设置", ref _settingVisible))
 			{
 				if (ImGui.CollapsingHeader("基础设置"))
 				{
 					ImGui.Indent();
-					bool showTrade = tradeBuddy.Configuration.ShowTrade;
-					if (ImGui.Checkbox("显示监控窗口", ref showTrade))
-					{
-						tradeBuddy.Configuration.ShowTrade = showTrade;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade)) Config.Save();
 
-					string confirmStr = tradeBuddy.Configuration.TradeConfirmStr;
 					ImGui.SetNextItemWidth(400);
-					if (ImGui.InputText("##确认交易字符串", ref confirmStr, 256))
-					{
-						tradeBuddy.Configuration.TradeConfirmStr = confirmStr;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.InputText("##确认交易字符串", ref Config.TradeConfirmStr, 256)) Config.Save();
 
 					ImGui.SameLine();
-					bool confirmAlert = tradeBuddy.Configuration.TradeConfirmAlert;
-					if (ImGui.Checkbox("确认交易后提示", ref confirmAlert))
-					{
-						tradeBuddy.Configuration.TradeConfirmAlert = confirmAlert;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.Checkbox("确认交易后提示", ref Config.TradeConfirmAlert)) Config.Save();
 
-					string cancelStr = tradeBuddy.Configuration.TradeCancelStr;
 					ImGui.SetNextItemWidth(400);
-					if (ImGui.InputText("##取消交易字符串", ref cancelStr, 256))
-					{
-						tradeBuddy.Configuration.TradeCancelStr = cancelStr;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.InputText("##取消交易字符串", ref Config.TradeCancelStr, 256)) Config.Save();
 
 					ImGui.SameLine();
-					bool cancelAlert = tradeBuddy.Configuration.TradeCancelAlert;
-					if (ImGui.Checkbox("取消交易后提示", ref cancelAlert))
-					{
-						tradeBuddy.Configuration.TradeCancelAlert = cancelAlert;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.Checkbox("取消交易后提示", ref Config.TradeCancelAlert)) Config.Save();
 
-					bool drawProPerColor = tradeBuddy.Configuration.DrawRetainerSellListProper;
-					if (ImGui.Checkbox("##绘制不低于预期", ref drawProPerColor))
-					{
-						tradeBuddy.Configuration.DrawRetainerSellListProper = drawProPerColor;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.Checkbox("##绘制不低于预期", ref Config.DrawRetainerSellListProper)) Config.Save();
+
 					ImGui.SameLine();
 					Vector3 sellListPriceProperColor = new(
-						tradeBuddy.Configuration.RetainerSellListProperColor[0] / 255.0f,
-						tradeBuddy.Configuration.RetainerSellListProperColor[1] / 255.0f,
-						tradeBuddy.Configuration.RetainerSellListProperColor[2] / 255.0f
+						Config.RetainerSellListProperColor[0] / 255.0f,
+						Config.RetainerSellListProperColor[1] / 255.0f,
+						Config.RetainerSellListProperColor[2] / 255.0f
 						);
 					ImGui.SetNextItemWidth(300);
 					if (ImGui.ColorEdit3("雇员出售价格不低于预期", ref sellListPriceProperColor))
 					{
-						tradeBuddy.Configuration.RetainerSellListProperColor[0] = (int)Math.Round(sellListPriceProperColor.X * 255);
-						tradeBuddy.Configuration.RetainerSellListProperColor[1] = (int)Math.Round(sellListPriceProperColor.Y * 255);
-						tradeBuddy.Configuration.RetainerSellListProperColor[2] = (int)Math.Round(sellListPriceProperColor.Z * 255);
-						tradeBuddy.Configuration.Save();
+						Config.RetainerSellListProperColor[0] = (int)Math.Round(sellListPriceProperColor.X * 255);
+						Config.RetainerSellListProperColor[1] = (int)Math.Round(sellListPriceProperColor.Y * 255);
+						Config.RetainerSellListProperColor[2] = (int)Math.Round(sellListPriceProperColor.Z * 255);
+						Config.Save();
 					}
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(0, FontAwesomeIcon.Reply))
 					{
-						Array.Copy(Configuration.SellListProperDefaultColor, tradeBuddy.Configuration.RetainerSellListProperColor, 3);
-						tradeBuddy.Configuration.Save();
+						Array.Copy(Configuration.SellListProperDefaultColor, Config.RetainerSellListProperColor, 3);
+						Config.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("重置");
 
-					bool drawAlertColor = tradeBuddy.Configuration.DrawRetainerSellListAlert;
-					if (ImGui.Checkbox("##绘制低于预期", ref drawAlertColor))
-					{
-						tradeBuddy.Configuration.DrawRetainerSellListAlert = drawAlertColor;
-						tradeBuddy.Configuration.Save();
-					}
+					if (ImGui.Checkbox("##绘制低于预期", ref Config.DrawRetainerSellListAlert)) Config.Save();
 					ImGui.SameLine();
 					Vector3 sellListPriceAlertColor = new(
-					   tradeBuddy.Configuration.RetainerSellListAlertColor[0] / 255.0f,
-					   tradeBuddy.Configuration.RetainerSellListAlertColor[1] / 255.0f,
-					   tradeBuddy.Configuration.RetainerSellListAlertColor[2] / 255.0f
+					   Config.RetainerSellListAlertColor[0] / 255.0f,
+					   Config.RetainerSellListAlertColor[1] / 255.0f,
+					   Config.RetainerSellListAlertColor[2] / 255.0f
 					   );
 					ImGui.SetNextItemWidth(300);
 					if (ImGui.ColorEdit3("雇员出售价格低于预期", ref sellListPriceAlertColor))
 					{
-						tradeBuddy.Configuration.RetainerSellListAlertColor[0] = (int)Math.Round(sellListPriceAlertColor.X * 255);
-						tradeBuddy.Configuration.RetainerSellListAlertColor[1] = (int)Math.Round(sellListPriceAlertColor.Y * 255);
-						tradeBuddy.Configuration.RetainerSellListAlertColor[2] = (int)Math.Round(sellListPriceAlertColor.Z * 255);
-						tradeBuddy.Configuration.Save();
+						Config.RetainerSellListAlertColor[0] = (int)Math.Round(sellListPriceAlertColor.X * 255);
+						Config.RetainerSellListAlertColor[1] = (int)Math.Round(sellListPriceAlertColor.Y * 255);
+						Config.RetainerSellListAlertColor[2] = (int)Math.Round(sellListPriceAlertColor.Z * 255);
+						Config.Save();
 					}
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(1, FontAwesomeIcon.Reply))
 					{
-						Array.Copy(Configuration.SellListAlertDefaultColor, tradeBuddy.Configuration.RetainerSellListAlertColor, 3);
-						tradeBuddy.Configuration.Save();
+						Array.Copy(Configuration.SellListAlertDefaultColor, Config.RetainerSellListAlertColor, 3);
+						Config.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("重置");
 
@@ -182,7 +148,7 @@ namespace TradeBuddy.Window
 					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Trash))
 					{
 						itemList.Clear();
-						tradeBuddy.Configuration.Save();
+						Config.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("删除所有项目");
 
@@ -207,14 +173,14 @@ namespace TradeBuddy.Window
 							foreach (string line in strLine)
 							{
 								if (!string.IsNullOrEmpty(line))
-									itemList.Add(PresetItem.ParseFromString(line));
+									itemList.Add(Configuration.PresetItem.ParseFromString(line));
 							}
 						}
 						catch (NullReferenceException e)
 						{
 							PluginLog.Error("从剪贴板导入失败\n" + e.ToString());
 						}
-						tradeBuddy.Configuration.Save();
+						Config.Save();
 					}
 					if (ImGui.IsItemHovered()) ImGui.SetTooltip("从剪贴板导入");
 
@@ -234,11 +200,11 @@ namespace TradeBuddy.Window
 						ImGui.SameLine();
 						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Times)) editIndex = -1;
 
-						ImGui.InputText("名字", ref nameLabel, 1024, ImGuiInputTextFlags.CharsNoBlank);
+						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) save = true;
 
 
-						ImGui.InputText("价格", ref priceLabel, 1024, ImGuiInputTextFlags.CharsNoBlank);
+						ImGui.InputText("价格", ref priceLabel, 1022564, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) save = true;
 
 						var itemNameArray = new List<string>();
@@ -249,7 +215,7 @@ namespace TradeBuddy.Window
 						if (ImGui.ListBox("##候选表", ref current_index, items, itemNameArray.Count, 3))
 							nameLabel = items[current_index];
 
-						if (save && tradeBuddy.Configuration.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != tradeBuddy.Configuration.PresetItemDictionary[nameLabel])
+						if (save && Config.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != Config.PresetItemDictionary[nameLabel])
 						{
 							ImGui.SetTooltip("物品与已有设定重复，无法添加");
 						}
@@ -258,13 +224,13 @@ namespace TradeBuddy.Window
 							if (nameLabel == "")
 							{
 								itemList.RemoveAt(editIndex);
-								tradeBuddy.Configuration.Save();
+								Config.Save();
 							}
 							else
 							{
 								if (editIndex == -2)
 								{
-									PresetItem presetItem = new();
+									Configuration.PresetItem presetItem = new();
 									itemList.Add(presetItem);
 
 									editIndex = itemList.Count - 1;
@@ -272,7 +238,7 @@ namespace TradeBuddy.Window
 								itemList[editIndex].ItemName = nameLabel;
 								itemList[editIndex].SetPriceStr(priceLabel.Replace("-", string.Empty).Replace(",", string.Empty));
 							}
-							tradeBuddy.Configuration.Save();
+							Config.Save();
 							editIndex = -1;
 						}
 					}
@@ -343,7 +309,7 @@ namespace TradeBuddy.Window
 					if (ImGuiComponents.IconButton(moreEditIndex, FontAwesomeIcon.Trash))
 					{
 						itemList.RemoveAt(moreEditIndex);
-						tradeBuddy.Configuration.Save();
+						Config.Save();
 						editIndex = -1;
 						ImGui.CloseCurrentPopup();
 					}
@@ -357,7 +323,7 @@ namespace TradeBuddy.Window
 		/// </summary>
 		/// <param name="id">通过不重复的id来区别不同东西</param>
 		/// <param name="item"></param>
-		private void DrawItemBlock(string id, PresetItem item)
+		private void DrawItemBlock(string id, Configuration.PresetItem item)
 		{
 			if (ImGui.BeginChild(id, new(Item_width, IMAGE_SIZE.Y + 16), true))
 			{
@@ -399,7 +365,6 @@ namespace TradeBuddy.Window
 
 		public void Dispose()
 		{
-			if (failureImage != null) failureImage.Dispose();
 		}
 	}
 }

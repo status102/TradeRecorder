@@ -92,7 +92,7 @@ namespace TradeBuddy
 			public bool isHQ { get; private set; } = false;
 
 			/// <summary>
-			/// 返回Universalis上面获取到的价格
+			/// Universalis上面获取到的价格
 			/// -1 获取失败
 			/// 0 获取中
 			/// </summary>
@@ -117,25 +117,20 @@ namespace TradeBuddy
 			/// </summary>
 			public float EvaluatePrice()
 			{
-
 				if (PriceList.Count == 0) evaluatePrice = 0;
-				else if (evaluatePrice == 0) UpdateEvaluatePrice();
-				return evaluatePrice;
-			}
-			/// <summary>
-			/// 重新计算评估价格
-			/// </summary>
-			public void UpdateEvaluatePrice()
-			{
-				evaluatePrice = 0;
-				if (PriceList.Count > 0)
+				else if (evaluatePrice == 0)
 				{
-					foreach (KeyValuePair<int, int> pair in PriceList)
+					evaluatePrice = 0;
+					if (PriceList.Count > 0)
 					{
-						if (evaluatePrice == 0 || pair.Value * 1.0f / pair.Key < evaluatePrice)
-							evaluatePrice = pair.Value * 1.0f / pair.Key;
+						foreach (KeyValuePair<int, int> pair in PriceList)
+						{
+							if (evaluatePrice == 0 || pair.Value * 1.0f / pair.Key < evaluatePrice)
+								evaluatePrice = pair.Value * 1.0f / pair.Key;
+						}
 					}
 				}
+				return evaluatePrice;
 			}
 
 			public string GetPriceStr()
@@ -172,7 +167,7 @@ namespace TradeBuddy
 						}
 					}
 				}
-				UpdateEvaluatePrice();
+				EvaluatePrice();
 
 			}
 			public static int Sort(int x, int y)
