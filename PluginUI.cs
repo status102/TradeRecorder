@@ -64,8 +64,8 @@ namespace TradeBuddy
 			*/
 			this.configuration = configuration;
 			Trade = new Trade();
-			History = new History();
-			Setting = new Setting();
+			History = new History(TradeBuddy.Instance);
+			Setting = new Setting(TradeBuddy.Instance);
 			RetainerSellList = new RetainerSellList();
 			ItemSearchResult = new ItemSearchResult();
 
@@ -80,6 +80,7 @@ namespace TradeBuddy
 		{
 			configuration.Dispose();
 			Setting.Dispose();
+			History.Dispose();
 			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
 			DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
 

@@ -7,19 +7,19 @@ using TradeBuddy.Window;
 
 namespace TradeBuddy
 {
-	public sealed class Plugin : IDalamudPlugin
+	public sealed class TradeBuddy : IDalamudPlugin
 	{
 		public string Name => "Trade Buddy";
 
 		private const string commandName = "/tb";
-		public static Plugin Instance { get; private set; }
+		public static TradeBuddy Instance { get; private set; }
 
 		[RequiredVersion("1.0")] public DalamudPluginInterface PluginInterface { get; init; }
 		[RequiredVersion("1.0")] public CommandManager CommandManager { get; init; }
 		public Configuration Configuration { get; init; }
 		public PluginUI PluginUi { get; init; }
 
-		public Plugin(
+		public TradeBuddy(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
 			[RequiredVersion("1.0")] CommandManager commandManager
 		)

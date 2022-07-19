@@ -1,21 +1,25 @@
 ﻿using ImGuiNET;
+using ImGuiScene;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace TradeBuddy.Window
 {
-	public class History
+	public class History : IDisposable
 	{
 		/// <summary>
 		/// 删除记录后重新去文件读取
 		/// </summary>
-		private bool _refresh = true;
-		private List<TradeHistory> tradeHistoryList = new();
-		private string playerName = "", playerWorld = "";
+		private bool _refresh = true, _edit = false;
+		private static readonly Vector2 Img_Size = new(26, 26);
+		private List<TradeHistory> _tradeHistoryList = new();
+		//private string playerName = "", playerWorld = "";
+
+		private TradeBuddy tradeBuddy;
 
 		public class TradeHistory
 		{
@@ -35,11 +39,20 @@ namespace TradeBuddy.Window
 			{
 				public string name;
 				public int count;
+				private ushort iconId  = 0;
+				private bool isHQ;
+
+				public TextureWrap? icon { get; private set; }
 
 				public Item(string name, int count)
 				{
 					this.name = name;
 					this.count = count;
+					isHQ = name.EndsWith("HQ");
+					var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name.Replace("HQ", String.Empty));
+					if (itemByName != null)
+						iconId = itemByName.Icon;
+					if (iconId > 0) icon = Configuration.GetIcon(iconId, isHQ);
 				}
 				public override string ToString() => $"{name}{COUNT_SPLIT}{count}";
 				public string ToShowString() => $"{name} {COUNT_SPLIT} {count}";
@@ -75,46 +88,29 @@ namespace TradeBuddy.Window
 			}
 		}
 
+		public History(TradeBuddy tradeBuddy)
+		{
+			this.tradeBuddy = tradeBuddy;
+			Task.Run(() => ReadHistory());
+		}
+
 		public void DrawHistory(ref bool historyVisible)
 		{
-			if (!historyVisible || DalamudDll.ClientState.LocalPlayer == null) return;
+			if (!historyVisible) return;
 
-			playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
-			playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (_refresh) ReadHistory();
 
-			if (_refresh)
-			{
-				tradeHistoryList = new();
-
-				string path = Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
-
-				using (StreamReader reader = new(File.Open(path, FileMode.OpenOrCreate)))
-				{
-					string tradeStr;
-					while ((tradeStr = reader.ReadLine() ?? "").Length > 0)
-					{
-						TradeHistory? trade = TradeHistory.ParseFromString(tradeStr);
-						if (trade != null) tradeHistoryList.Add(trade);
-					}
-				}
-				_refresh = false;
-			}
 			ImGui.SetNextWindowSize(new Vector2(480, 600), ImGuiCond.FirstUseEver);
 			if (ImGui.Begin("交易历史记录", ref historyVisible))
 			{
-				if (ImGui.Button("全部清除"))
-				{
-					using StreamWriter writer = new(File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create));
-					writer.Flush();
-					_refresh = true;
-				}
+				if (ImGui.Button("全部清除")) ClearHistory();
 
-				for (int index = 0; index < tradeHistoryList.Count; index++)
+				for (int index = 0; index < _tradeHistoryList.Count; index++)
 				{
-					TradeHistory tradeItem = tradeHistoryList[index];
-					StringBuilder title = new();
-					title.Append(index + 1).Append($":  {tradeItem.time}  <{tradeItem.targetName}>");
-					if (!tradeItem.isSuccess) title.Append("  (取消)");
+					TradeHistory tradeItem = _tradeHistoryList[index];
+
+					var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
+					if (!tradeItem.isSuccess) title += "  (取消)";
 					if (ImGui.CollapsingHeader(title.ToString(), ref tradeItem.visible))
 					{
 						if (ImGui.BeginTable("histroy", 2, ImGuiTableFlags.BordersInner | ImGuiTableFlags.RowBg))
@@ -127,22 +123,13 @@ namespace TradeBuddy.Window
 								ImGui.TableNextRow();
 								ImGui.TableNextColumn();
 
-								// todo 历史记录增加图片
-								//ImGui.SameLine();
-
 								if (tradeItem.giveItemArray.Length > i)
 								{
-									var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == tradeItem.giveItemArray[i].name);
-									if (itemByName != null)
+									var icon = tradeItem.giveItemArray[i].icon;
+									if (icon != null)
 									{
-										ushort iconId = itemByName.Icon;
-										var iconTexture = Configuration.GetIcon(iconId, tradeItem.giveItemArray[i].name.EndsWith("HQ"));
-										if (iconTexture != null)
-										{
-											ImGui.Image(iconTexture.ImGuiHandle, new(20, 20));
-											ImGui.SameLine();
-										}
-
+										ImGui.Image(icon.ImGuiHandle, Img_Size);
+										ImGui.SameLine();
 									}
 									ImGui.TextUnformatted(tradeItem.giveItemArray[i].ToShowString());
 								}
@@ -150,17 +137,11 @@ namespace TradeBuddy.Window
 								ImGui.TableNextColumn();
 								if (tradeItem.receiveItemArray.Length > i)
 								{
-									var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == tradeItem.receiveItemArray[i].name);
-									if (itemByName != null)
+									var icon = tradeItem.receiveItemArray[i].icon;
+									if (icon != null)
 									{
-										ushort iconId = itemByName.Icon;
-										var iconTexture = Configuration.GetIcon(iconId, tradeItem.receiveItemArray[i].name.EndsWith("HQ"));
-										if (iconTexture != null)
-										{
-											ImGui.Image(iconTexture.ImGuiHandle, new(20, 20));
-											ImGui.SameLine();
-										}
-
+										ImGui.Image(icon.ImGuiHandle, Img_Size);
+										ImGui.SameLine();
 									}
 									ImGui.TextUnformatted(tradeItem.receiveItemArray[i].ToShowString());
 								}
@@ -180,32 +161,23 @@ namespace TradeBuddy.Window
 						}
 					}
 					//删除记录
-					if (!tradeItem.visible)
-					{
-						using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
-						{
-							StreamWriter writer = new(stream);
-							foreach (TradeHistory tradeHistory in tradeHistoryList)
-								if (tradeHistory.visible) writer.WriteLine(tradeHistory.ToString());
-							writer.Flush();
-						}
-						_refresh = true;
-					}
+					if (!tradeItem.visible) _edit = true;
+
 				}
 			}
+			if (_edit) EditHistory();
 		}
 
 		public void PushTradeHistory(string targetName, int giveGil, int receiveGil, List<KeyValuePair<string, int>> giveItemArray, List<KeyValuePair<string, int>> receiveItemArray) => PushTradeHistory(true, targetName, giveGil, receiveGil, giveItemArray, receiveItemArray);
 
 		public void PushTradeHistory(bool isSuccess, string targetName, int giveGil, int receiveGil, List<KeyValuePair<string, int>> giveItemList, List<KeyValuePair<string, int>> receiveItemList)
 		{
-			playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
-			playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
-
+			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			List<TradeHistory.Item> giveList = new(), receiviList = new();
-			giveItemList.ForEach(item => giveList.Add(new(item.Key, item.Value)));
-			receiveItemList.ForEach(item => receiviList.Add(new(item.Key, item.Value)));
+			giveItemList.ForEach(i => giveList.Add(new(i.Key, i.Value)));
+			receiveItemList.ForEach(i => receiviList.Add(new(i.Key, i.Value)));
 
 			TradeHistory tradeHistory = new()
 			{
@@ -217,7 +189,7 @@ namespace TradeBuddy.Window
 				receiveItemArray = receiviList.ToArray()
 			};
 
-			using (FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append))
+			using (FileStream stream = File.Open(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append))
 			{
 				StreamWriter writer = new(stream);
 				writer.WriteLine(tradeHistory.ToString());
@@ -226,5 +198,56 @@ namespace TradeBuddy.Window
 			_refresh = true;
 		}
 
+		public void ReadHistory()
+		{
+			if (DalamudDll.ClientState.LocalPlayer == null) return;
+			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+
+			_tradeHistoryList = new();
+
+			string path = Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
+
+			using (StreamReader reader = new(File.Open(path, FileMode.OpenOrCreate)))
+			{
+				string tradeStr;
+				while ((tradeStr = reader.ReadLine() ?? "").Length > 0)
+				{
+					TradeHistory? trade = TradeHistory.ParseFromString(tradeStr);
+					if (trade != null) _tradeHistoryList.Add(trade);
+				}
+			}
+			_refresh = false;
+		}
+
+		public void EditHistory()
+		{
+			if (DalamudDll.ClientState.LocalPlayer == null) return;
+			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+
+			using (FileStream stream = File.Open(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
+			{
+				StreamWriter writer = new(stream);
+				foreach (TradeHistory tradeHistory in _tradeHistoryList)
+					if (tradeHistory.visible) writer.WriteLine(tradeHistory.ToString());
+				writer.Flush();
+			}
+			_edit = false;
+		}
+
+		public void ClearHistory()
+		{
+			if (DalamudDll.ClientState.LocalPlayer == null) return;
+			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+
+			File.Delete(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
+		}
+
+		public void Dispose()
+		{
+			_tradeHistoryList.Clear();
+		}
 	}
 }

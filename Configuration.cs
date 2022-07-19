@@ -26,11 +26,11 @@ namespace TradeBuddy
 		[NonSerialized]
 		public bool StrictMode = true;
 		[NonSerialized]
-		public static int outOfTime = 30 * 1000;
+		public const int outOfTime = 30 * 1000;
 
 		public string TradeConfirmStr = "交易完成。";
 		public string TradeCancelStr = "交易取消。";
-		public bool TradeConfirmAlert = false;
+		public bool TradeConfirmAlert = true;
 		public bool TradeCancelAlert = true;
 
 		/// <summary>

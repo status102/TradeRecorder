@@ -44,11 +44,11 @@ namespace TradeBuddy.Window
 					string itemName = Encoding.UTF8.GetString(strBuffer);
 					string priceNQStr = "", priceHQStr = "";
 
-					if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName))
-						priceNQStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemName]].GetPriceStr();
+					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName))
+						priceNQStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemName]].GetPriceStr();
 
-					if (Plugin.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName + "HQ"))
-						priceHQStr = Plugin.Instance.Configuration.PresetItemList[Plugin.Instance.Configuration.PresetItemDictionary[itemName + "HQ"]].GetPriceStr();
+					if (TradeBuddy.Instance.Configuration.PresetItemDictionary.ContainsKey(itemName + "HQ"))
+						priceHQStr = TradeBuddy.Instance.Configuration.PresetItemList[TradeBuddy.Instance.Configuration.PresetItemDictionary[itemName + "HQ"]].GetPriceStr();
 
 					if (!string.IsNullOrEmpty(priceNQStr)) priceNQStr = String.Format("  NQ：{0:}", priceNQStr);
 					if (!string.IsNullOrEmpty(priceHQStr)) priceHQStr = String.Format("  HQ：{0:}", priceHQStr);
