@@ -16,6 +16,14 @@
     "LastUpdate": 1658124630,
     "DownloadLinkInstall": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
     "DownloadLinkUpdate": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
-    "DownloadLinkTesting": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip"
+    "DownloadLinkTesting": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
+    "Tags": [
+        "Trade",
+        "MarketBoard",
+        "RetainerSell"
+    ],"ImageUrls": [
+        "https://raw.githubusercontent.com/status102/TradeBuddy/master/Image/History.png",
+        "https://raw.githubusercontent.com/status102/TradeBuddy/master/Image/Setting.png"
+    ]
   }
 ]

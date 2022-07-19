@@ -220,7 +220,7 @@ namespace TradeBuddy.Window
 
 					ImGui.SameLine();
 					ImGui.TextDisabled("(?)");
-					if (ImGui.IsItemHovered()) ImGui.SetTooltip("双击鼠标左键物品编辑物品名，单击鼠标右键打开详细编辑\n不同价格方案间以;分割");
+					if (ImGui.IsItemHovered()) ImGui.SetTooltip("双击鼠标左键物品编辑物品名，单击鼠标右键打开详细编辑\n不同价格方案间以;分割\n当最低价低于设定价格时，标黄进行提醒");
 
 					//添加or编辑预期中
 					if (editIndex != -1 && editIndex < itemList.Count)
