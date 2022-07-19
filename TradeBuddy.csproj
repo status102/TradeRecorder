@@ -2,11 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors>status102</Authors>
-    <Company></Company>
     <Version>0.0.2.1</Version>
-    <Description></Description>
-    <Copyright></Copyright>
-    <PackageProjectUrl></PackageProjectUrl>
 
   </PropertyGroup>
 
@@ -54,7 +50,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.7" />
+    <PackageReference Include="DalamudPackager" Version="2.1.7">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
