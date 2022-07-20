@@ -11,15 +11,6 @@ namespace TradeBuddy.Window
 {
 	public class History : IDisposable
 	{
-		/// <summary>
-		/// 删除记录后重新去文件读取
-		/// </summary>
-		private bool _refresh = true, _edit = false;
-		private static readonly Vector2 Img_Size = new(26, 26);
-		private List<TradeHistory> _tradeHistoryList = new();
-		//private string playerName = "", playerWorld = "";
-
-		private TradeBuddy tradeBuddy;
 
 		public class TradeHistory
 		{
@@ -88,6 +79,16 @@ namespace TradeBuddy.Window
 			}
 		}
 
+		/// <summary>
+		/// 删除记录后重新去文件读取
+		/// </summary>
+		private bool _refresh = true, _edit = false;
+		private static readonly Vector2 Img_Size = new(26, 26);
+		private List<TradeHistory> _tradeHistoryList = new();
+		//private string playerName = "", playerWorld = "";
+
+		private TradeBuddy tradeBuddy;
+
 		public History(TradeBuddy tradeBuddy)
 		{
 			this.tradeBuddy = tradeBuddy;
@@ -100,6 +101,8 @@ namespace TradeBuddy.Window
 			{
 				if (_edit)
 				{
+					_edit = false;
+					_refresh = false;
 					Task.Run(() => { EditHistory(); ReadHistory(); });
 				}
 				return;
@@ -160,10 +163,10 @@ namespace TradeBuddy.Window
 								{
 									ImGui.TableNextRow();
 									ImGui.TableNextColumn();
-									if (tradeItem.giveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.giveGil).TrimStart('0'));
+									if (tradeItem.giveGil > 0) ImGui.TextUnformatted(($"金币: {tradeItem.giveGil:#,##0}" ));
 
 									ImGui.TableNextColumn();
-									if (tradeItem.receiveGil > 0) ImGui.TextUnformatted(string.Format("金币: {0:0,0}", tradeItem.receiveGil).TrimStart('0'));
+									if (tradeItem.receiveGil > 0) ImGui.TextUnformatted($"金币: {tradeItem.receiveGil:#,##0}");
 								}
 
 								ImGui.EndTable();

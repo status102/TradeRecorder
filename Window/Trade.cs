@@ -77,7 +77,7 @@ namespace TradeBuddy
 					{
 						-1 => "获取失败",
 						0 => "获取中",
-						_ => string.Format("{0:0,0}", minPrice).TrimStart('0')
+						_ => $"{minPrice:#,##0}"
 					};
 				}
 			}
@@ -399,8 +399,8 @@ namespace TradeBuddy
 							// todo 计算非严格模式下价格计算，没辙
 						}
 					}
-					ImGui.TextColored(color[itemArray[i].priceType], string.Format("{0:0,0}", itemArray[i].price).TrimStart('0'));
-					if (ImGui.IsItemClicked()) ImGui.SetClipboardText(string.Format("{0:0,0}", itemArray[i].price).TrimStart('0'));
+					ImGui.TextColored(color[itemArray[i].priceType], $"{itemArray[i].price:#,##0}");
+					if (ImGui.IsItemClicked()) ImGui.SetClipboardText($"{itemArray[i].price:#,##0}");
 				}
 
 				ImGui.TableNextColumn();
@@ -427,9 +427,9 @@ namespace TradeBuddy
 				sum += itemArray[i].price;
 
 			sum += gil;
-			ImGui.TextUnformatted(string.Format("{0:0,0}", sum).TrimStart('0'));
+			ImGui.TextUnformatted($"{sum:#,##0}");
 			if (ImGui.IsItemHovered()) ImGui.SetTooltip("包含金币在内的全部金额");
-			if (ImGui.IsItemClicked()) ImGui.SetClipboardText(string.Format("{0:0,0}", sum).TrimStart('0'));
+			if (ImGui.IsItemClicked()) ImGui.SetClipboardText($"{sum:#,##0}");
 			ImGui.EndTable();
 		}
 

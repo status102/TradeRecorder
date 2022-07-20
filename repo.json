@@ -22,8 +22,8 @@
       "RetainerSell"
     ],
     "ImageUrls": [
-      "https://raw.githubusercontent.com/status102/TradeBuddy/master/Image/History.png",
-      "https://raw.githubusercontent.com/status102/TradeBuddy/master/Image/Setting.png"
+      "https://github.com/status102/TradeBuddy/raw/master/Image/History.png",
+      "https://github.com/status102/TradeBuddy/raw/master/Image/Setting_.png"
     ],
     "Changelog": "-v0.0.2.1: 优化历史记录的资源占用\n-v0.0.2.2: 修复交易累积记录失效，优化历史记录写入逻辑"
   }

@@ -5,6 +5,8 @@ using ImGuiScene;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Text.Json.Serialization;
 
 namespace TradeBuddy
 {
@@ -45,28 +47,59 @@ namespace TradeBuddy
 		/// <summary>
 		/// 雇员出售列表，价格合适自定义颜色
 		/// </summary>
+		[JsonPropertyName("RetainerSellListProperColor")]
 		public int[] RetainerSellListProperColor = new int[] { 10, 187, 10 };
 		/// <summary>
 		/// 雇员出售列表，价格过低自定义颜色
 		/// </summary>
+		[JsonPropertyName("RetainerSellListAlertColor")]
 		public int[] RetainerSellListAlertColor = new int[] { 213, 28, 47 };
 
-		[NonSerialized]
-		/// <summary>
-		/// 雇员出售列表，价格合适默认颜色
-		/// </summary>
-		public readonly static int[] SellListProperDefaultColor = new int[] { 10, 187, 10 };
-		[NonSerialized]
-		/// <summary>
-		/// 雇员出售列表，价格过低默认颜色
-		/// </summary>
-		public readonly static int[] SellListAlertDefaultColor = new int[] { 213, 28, 47 };
-		[NonSerialized]
-		/// <summary>
-		/// 雇员出售列表，价格默认颜色
-		/// </summary>
-		public readonly static int[] SellListDefaultColor = new int[] { 0xCC, 0xCC, 0xCC };
 
+		[JsonPropertyName("RetainerSellList")]
+		public RetainerSellList? sellList;
+		public class RetainerSellList
+		{
+			[JsonPropertyName("ProperColor")]
+			public int[] ProperColorArray => Config.RetainerSellListProperColor;
+
+			[Newtonsoft.Json.JsonIgnore]
+			public Vector3 ProperColor
+			{
+				get => new(ProperColorArray[0] / 255f, ProperColorArray[1] / 255f, ProperColorArray[2] / 255f);
+				set
+				{
+					var list = new List<float>() { value.X, value.Z, value.Z };
+					Config.RetainerSellListProperColor = list.Select(x => (int)Math.Round(x * 255)).ToArray();
+				}
+			}
+			[JsonPropertyName("AlertColor")]
+			public int[] AlertColorArray => Config.RetainerSellListAlertColor;
+
+			[Newtonsoft.Json.JsonIgnore]
+			public Vector3 AlertColor
+			{
+				get => new(AlertColorArray[0] / 255f, AlertColorArray[1] / 255f, AlertColorArray[2] / 255f);
+				set
+				{
+					var list = new List<float>() { value.X, value.Z, value.Z };
+					Config.RetainerSellListAlertColor = list.Select(x => (int)Math.Round(x * 255)).ToArray();
+				}
+			}
+			[NonSerialized]
+			public readonly static int[] Proper_Color_Default = new int[] { 10, 187, 10 };
+			[NonSerialized]
+			public readonly static int[] Alert_Color_Default = new int[] { 213, 28, 47 };
+			[NonSerialized]
+			public readonly static int[] Color_Default = new int[] { 0xCC, 0xCC, 0xCC };
+			[NonSerialized]
+			public Configuration Config;
+			public RetainerSellList(Configuration config)
+			{
+				Config = config;
+			}
+
+		}
 
 		public List<PresetItem> PresetItemList = new();
 
@@ -137,7 +170,7 @@ namespace TradeBuddy
 			{
 				if (PriceList.Count == 1 && PriceList.ContainsKey(1)) return Convert.ToString(PriceList[1]);
 
-				return string.Join(';', PriceList.Select(pair => string.Format("{0:}/{1:}", string.Format("{0:0,0}", pair.Value).TrimStart('0'), string.Format("{0:0,0}", pair.Key).TrimStart('0'))));
+				return string.Join(';', PriceList.Select(pair => $"{pair.Value:#,##0}/{pair.Key:#,##0}"));
 			}
 			public void SetPriceStr(string value)
 			{
@@ -185,7 +218,7 @@ namespace TradeBuddy
 				minPriceServer = "";
 				minPrice = 0;
 				minPriceUpdateTime = -1;
-				
+
 				if (DalamudDll.ClientState.LocalContentId != 0 && string.IsNullOrEmpty(dcName))
 				{
 					if (!DalamudDll.ClientState.IsLoggedIn) return;
@@ -308,6 +341,7 @@ namespace TradeBuddy
 		public void Initialize(DalamudPluginInterface pluginInterface)
 		{
 			this.pluginInterface = pluginInterface;
+			sellList = new RetainerSellList(this);
 			cnWorldDC.Add(1167, "LuXingNiao");
 			cnWorldDC.Add(1081, "LuXingNiao");
 			cnWorldDC.Add(1042, "LuXingNiao");
@@ -343,6 +377,7 @@ namespace TradeBuddy
 			DalamudDll.ClientState.Logout += OnLogout;
 
 			PresetItemList.ForEach(item => item.UpdateMinPrice());
+
 			RefreshKeySet();
 		}
 
