@@ -96,9 +96,9 @@ namespace TradeBuddy.Window
 										}
 										else
 										{
-											priceNode->TextColor.R = (byte)Configuration.SellListDefaultColor[0];
-											priceNode->TextColor.G = (byte)Configuration.SellListDefaultColor[1];
-											priceNode->TextColor.B = (byte)Configuration.SellListDefaultColor[2];
+											priceNode->TextColor.R = (byte)Configuration.RetainerSellList.Color_Default[0];
+											priceNode->TextColor.G = (byte)Configuration.RetainerSellList.Color_Default[1];
+											priceNode->TextColor.B = (byte)Configuration.RetainerSellList.Color_Default[2];
 										}
 									}
 									catch (FormatException e)
@@ -119,9 +119,9 @@ namespace TradeBuddy.Window
 								}
 								else
 								{
-									priceNode->TextColor.R = (byte)Configuration.SellListDefaultColor[0];
-									priceNode->TextColor.G = (byte)Configuration.SellListDefaultColor[1];
-									priceNode->TextColor.B = (byte)Configuration.SellListDefaultColor[2];
+									priceNode->TextColor.R = (byte)Configuration.RetainerSellList.Color_Default[0];
+									priceNode->TextColor.G = (byte)Configuration.RetainerSellList.Color_Default[1];
+									priceNode->TextColor.B = (byte)Configuration.RetainerSellList.Color_Default[2];
 								}
 							}
 						}

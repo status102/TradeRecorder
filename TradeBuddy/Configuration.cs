@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace TradeBuddy
 {
@@ -43,7 +44,6 @@ namespace TradeBuddy
 		/// 雇员出售价格过低时，修改单价颜色
 		/// </summary>
 		public bool DrawRetainerSellListAlert = true;
-
 		/// <summary>
 		/// 雇员出售列表，价格合适自定义颜色
 		/// </summary>
@@ -67,11 +67,7 @@ namespace TradeBuddy
 			public Vector3 ProperColor
 			{
 				get => new(ProperColorArray[0] / 255f, ProperColorArray[1] / 255f, ProperColorArray[2] / 255f);
-				set
-				{
-					var list = new List<float>() { value.X, value.Z, value.Z };
-					Config.RetainerSellListProperColor = list.Select(x => (int)Math.Round(x * 255)).ToArray();
-				}
+				set => Config.RetainerSellListProperColor = new List<float>() { value.X, value.Y, value.Z }.Select(x => (int)Math.Round(x * 255)).ToArray();
 			}
 			[JsonPropertyName("AlertColor")]
 			public int[] AlertColorArray => Config.RetainerSellListAlertColor;
@@ -80,18 +76,14 @@ namespace TradeBuddy
 			public Vector3 AlertColor
 			{
 				get => new(AlertColorArray[0] / 255f, AlertColorArray[1] / 255f, AlertColorArray[2] / 255f);
-				set
-				{
-					var list = new List<float>() { value.X, value.Z, value.Z };
-					Config.RetainerSellListAlertColor = list.Select(x => (int)Math.Round(x * 255)).ToArray();
-				}
+				set => Config.RetainerSellListAlertColor = new List<float>() { value.X, value.Y, value.Z }.Select(x => (int)Math.Round(x * 255)).ToArray();
 			}
 			[NonSerialized]
-			public readonly static int[] Proper_Color_Default = new int[] { 10, 187, 10 };
+			public readonly static int[] Proper_Color_Default = { 10, 187, 10 };
 			[NonSerialized]
-			public readonly static int[] Alert_Color_Default = new int[] { 213, 28, 47 };
+			public readonly static int[] Alert_Color_Default = { 213, 28, 47 };
 			[NonSerialized]
-			public readonly static int[] Color_Default = new int[] { 0xCC, 0xCC, 0xCC };
+			public readonly static int[] Color_Default = { 0xCC, 0xCC, 0xCC };
 			[NonSerialized]
 			public Configuration Config;
 			public RetainerSellList(Configuration config)
@@ -312,7 +304,7 @@ namespace TradeBuddy
 
 		public void OnLogin(object? sender, EventArgs e)
 		{
-			PresetItemList.ForEach(item => item.UpdateMinPrice());
+			Task.Delay(TimeSpan.FromSeconds(3)).ContinueWith(_ => PresetItemList.ForEach(item => item.UpdateMinPrice()));
 		}
 
 		public void OnLogout(object? sender, EventArgs e)
@@ -373,11 +365,9 @@ namespace TradeBuddy
 			cnWorldDC.Add(1068, "DouDouChai");
 			cnWorldDC.Add(1064, "DouDouChai");
 			cnWorldDC.Add(1187, "DouDouChai");
+
 			DalamudDll.ClientState.Login += OnLogin;
 			DalamudDll.ClientState.Logout += OnLogout;
-
-			PresetItemList.ForEach(item => item.UpdateMinPrice());
-
 			RefreshKeySet();
 		}
 

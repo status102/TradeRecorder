@@ -7,7 +7,6 @@ using Dalamud.Game.Gui;
 using Dalamud.Game.Network;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace TradeBuddy
 {
@@ -26,14 +25,14 @@ namespace TradeBuddy
 		//[PluginService][RequiredVersion("1.0")] public static SeStringManager        _SeStrings       { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static ChatHandlers           _ChatHandlers    { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static Framework              _Framework       { get; private set; } = null!;
-		
+
 		[PluginService][RequiredVersion("1.0")] public static GameNetwork GameNetwork { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static Condition              _Conditions      { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static KeyState Keys { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static DataManager DataManager { get; private set; } = null!;
 		[PluginService][RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
-		
+
 		//[PluginService][RequiredVersion("1.0")] public static FlyTextGui             _FlyTexts        { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static ToastGui               _Toasts          { get; private set; } = null!;
 		//[PluginService][RequiredVersion("1.0")] public static JobGauges              _Gauges          { get; private set; } = null!;

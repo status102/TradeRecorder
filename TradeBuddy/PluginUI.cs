@@ -11,7 +11,7 @@ namespace TradeBuddy
 {
 	public unsafe class PluginUI : IDisposable
 	{
-		public readonly static char[] intToHex = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+		public readonly static char[] intToHex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 		private Configuration configuration;
 		public History History { get; init; }
 		public Trade Trade { get; init; }
@@ -48,20 +48,6 @@ namespace TradeBuddy
 
 		public unsafe PluginUI(Configuration configuration)
 		{
-			//网络包注释块
-			/*
-			try
-			{
-				FileStream stream = File.Open(Path.Join(Plugin.Instance.PluginInterface.ConfigDirectory.FullName, String.Format("网络包{0:}.log", DateTime.Now.ToString("yyyy-MM-dd HH_mm_ss"))), FileMode.OpenOrCreate);
-				if (stream != null && stream.CanWrite)
-					networkMessageWriter = new StreamWriter(stream);
-			}
-			catch (IOException e)
-			{
-				networkMessageWriter = null;
-				DalamudDll.ChatGui.PrintError("网络包初始化：" + e.ToString());
-			}
-			*/
 			this.configuration = configuration;
 			Trade = new Trade(TradeBuddy.Instance);
 			History = new History(TradeBuddy.Instance);
@@ -74,13 +60,20 @@ namespace TradeBuddy
 
 			DalamudDll.ChatGui.ChatMessage += Trade.MessageDelegate;
 			DalamudDll.GameNetwork.NetworkMessage += networkMessageDelegate;
+#if DEBUG
+			DalamudDll.ChatGui.ChatMessage += Custom.MessageDelegate;//自定义调试用代码，应当删除
+#endif
 		}
 
 		public void Dispose()
 		{
 			configuration.Dispose();
+
 			Setting.Dispose();
 			History.Dispose();
+#if DEBUG
+			DalamudDll.ChatGui.ChatMessage -= Custom.MessageDelegate;//自定义调试用代码，应当删除
+#endif
 			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
 			DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
 
@@ -99,7 +92,7 @@ namespace TradeBuddy
 			RetainerSellList.Draw();
 			ItemSearchResult.Draw();
 		}
-		
+
 		public unsafe void networkMessageDelegate(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId, NetworkMessageDirection direction)
 		{
 			if (networkMessageWriter != null)

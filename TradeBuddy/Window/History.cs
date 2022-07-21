@@ -1,10 +1,13 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Logging;
+using ImGuiNET;
 using ImGuiScene;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace TradeBuddy.Window
@@ -12,28 +15,31 @@ namespace TradeBuddy.Window
 	public class History : IDisposable
 	{
 
+		private static readonly string[] Title =  { "时间", "交易状态", "交易对象", "支付金额", "接收金额", "支付物品", "接收物品" };
+
 		public class TradeHistory
 		{
 			public bool visible = true;//控制显示
 
-			private readonly static string TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-			private readonly static char PART_SPLIT = ';';
-			private readonly static char ITEM_SPLIT = ',';
-			private readonly static char COUNT_SPLIT = 'x';
-			public bool isSuccess = true;
-			public string time = DateTime.Now.ToString(TIME_FORMAT);
-			public string targetName = "";
-			public int giveGil = 0, receiveGil = 0;
-			public Item[] giveItemArray = Array.Empty<Item>(), receiveItemArray = Array.Empty<Item>();
+			private const string TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+			private const char PART_SPLIT = ';';
+			private const char ITEM_SPLIT = ',';
+			private const char COUNT_SPLIT = 'x';
+			public bool isSuccess { get; init; } = true;
+			public string time { get; init; } = DateTime.Now.ToString(TIME_FORMAT);
+			public string targetName { get; init; } = "";
+			public int giveGil { get; init; } = 0;
+			public int receiveGil { get; init; } = 0;
+			public Item[] giveItemArray { get; init; } = Array.Empty<Item>();
+			public Item[] receiveItemArray { get; init; } = Array.Empty<Item>();
 
 			public class Item
 			{
-				public string name;
-				public int count;
+				public string name { get; init; }
+				public int count { get; init; }
 				private ushort iconId = 0;
-				private bool isHQ;
-
-				public TextureWrap? icon { get; private set; }
+				private bool isHQ = false;
+				public TextureWrap? icon { get; init; }
 
 				public Item(string name, int count)
 				{
@@ -41,8 +47,7 @@ namespace TradeBuddy.Window
 					this.count = count;
 					isHQ = name.EndsWith("HQ");
 					var itemByName = DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name.Replace("HQ", String.Empty));
-					if (itemByName != null)
-						iconId = itemByName.Icon;
+					if (itemByName != null) iconId = itemByName.Icon;
 					if (iconId > 0) icon = Configuration.GetIcon(iconId, isHQ);
 				}
 				public override string ToString() => $"{name}{COUNT_SPLIT}{count}";
@@ -63,7 +68,6 @@ namespace TradeBuddy.Window
 					giveItemArray = strArray[5].Split(ITEM_SPLIT).Select(i => i.Split(COUNT_SPLIT)).Where(i => i.Length == 2).Select(i => new Item(i[0], int.Parse(i[1]))).ToArray(),
 					receiveItemArray = strArray[6].Split(ITEM_SPLIT).Select(i => i.Split(COUNT_SPLIT)).Where(i => i.Length == 2).Select(i => new Item(i[0], int.Parse(i[1]))).ToArray()
 				};
-
 				return tradeHistory;
 			}
 			public override string ToString()
@@ -82,16 +86,18 @@ namespace TradeBuddy.Window
 		/// <summary>
 		/// 删除记录后重新去文件读取
 		/// </summary>
-		private bool _refresh = true, _edit = false;
+		private bool _refresh = true, _edit = false, _save = false;
+		private string _path = "";
+		private FileDialog? file;
 		private static readonly Vector2 Img_Size = new(26, 26);
 		private List<TradeHistory> _tradeHistoryList = new();
 		//private string playerName = "", playerWorld = "";
 
-		private TradeBuddy tradeBuddy;
+		private TradeBuddy _tradeBuddy;
 
 		public History(TradeBuddy tradeBuddy)
 		{
-			this.tradeBuddy = tradeBuddy;
+			_tradeBuddy = tradeBuddy;
 			Task.Run(() => ReadHistory());
 		}
 
@@ -114,6 +120,16 @@ namespace TradeBuddy.Window
 			if (ImGui.Begin("交易历史记录", ref historyVisible, ImGuiWindowFlags.NoScrollbar))
 			{
 				if (ImGui.Button("全部清除")) ClearHistory();
+
+				ImGui.SameLine();
+				ImGui.Spacing();
+				ImGui.SameLine();
+				if (ImGui.Button("导出到csv"))
+				{
+					_path = _tradeBuddy.PluginInterface.ConfigDirectory.FullName;
+					file = new FileDialog("save", "导出到csv", ".csv", _path, "output.csv", "", 1, false, ImGuiFileDialogFlags.None);
+					file.Show();
+				}
 
 				if (ImGui.BeginChild("##历史清单"))
 				{
@@ -163,7 +179,7 @@ namespace TradeBuddy.Window
 								{
 									ImGui.TableNextRow();
 									ImGui.TableNextColumn();
-									if (tradeItem.giveGil > 0) ImGui.TextUnformatted(($"金币: {tradeItem.giveGil:#,##0}" ));
+									if (tradeItem.giveGil > 0) ImGui.TextUnformatted(($"金币: {tradeItem.giveGil:#,##0}"));
 
 									ImGui.TableNextColumn();
 									if (tradeItem.receiveGil > 0) ImGui.TextUnformatted($"金币: {tradeItem.receiveGil:#,##0}");
@@ -175,6 +191,48 @@ namespace TradeBuddy.Window
 						//删除记录
 						if (!tradeItem.visible) _edit = true;
 
+					}
+				}
+			}
+
+			//自带回调，但是没法设置默认路径
+			/*
+			var ff = new FileDialogManager();
+			ff.SaveFileDialog("saveFile", "csv|*.csv", Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"out.csv"), "",
+				(b, s) => DalamudDll.ChatGui.Print($"saveF：{b}-{s}"));
+			ff.Draw();
+			*/
+			if (file != null && file.Draw())
+			{
+				_save = false;
+				file.Hide();
+				if (file.GetIsOk())
+				{
+					_path = file.GetResult();
+					if (!string.IsNullOrEmpty(_path))
+					{
+						if (!_path.EndsWith(".csv"))
+						{
+							_path += ".csv";
+						}
+#if DEBUG
+						DalamudDll.ChatGui.Print("save！Path：" + _path);
+#endif
+						var saveList = _tradeHistoryList.Where(i => i.visible)
+							.Select(i => $"\"{i.time}\",\"{i.isSuccess}\",\"{i.targetName}\",\"{i.giveGil:#,##0}\",\"{i.receiveGil:#,##0}\",\"{string.Join(',', i.giveItemArray.Select(i => i.ToString()))}\",\"{string.Join(',', i.receiveItemArray.Select(i => i.ToString()))}\"").ToList();
+						try
+						{
+							using (StreamWriter writer = new(File.Open(_path, FileMode.Create), Encoding.UTF8))
+							{
+								writer.WriteLine(string.Join(',', Title.Select(i => $"\"{i}\"").ToList()));
+								saveList.ForEach(i => writer.WriteLine(i));
+								writer.Flush();
+							}
+						}
+						catch (IOException e)
+						{
+							PluginLog.Error(e.ToString());
+						}
 					}
 				}
 			}
@@ -202,7 +260,7 @@ namespace TradeBuddy.Window
 				receiveItemArray = receiviList.ToArray()
 			};
 
-			using (FileStream stream = File.Open(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append))
+			using (FileStream stream = File.Open(Path.Join(_tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append))
 			{
 				StreamWriter writer = new(stream);
 				writer.WriteLine(tradeHistory.ToString());
@@ -219,7 +277,7 @@ namespace TradeBuddy.Window
 
 			_tradeHistoryList = new();
 
-			string path = Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
+			string path = Path.Join(_tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
 
 			using (StreamReader reader = new(File.Open(path, FileMode.OpenOrCreate)))
 			{
@@ -239,7 +297,7 @@ namespace TradeBuddy.Window
 			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
-			using (FileStream stream = File.Open(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
+			using (FileStream stream = File.Open(Path.Join(_tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create))
 			{
 				StreamWriter writer = new(stream);
 				foreach (TradeHistory tradeHistory in _tradeHistoryList)
@@ -255,7 +313,7 @@ namespace TradeBuddy.Window
 			var playerName = DalamudDll.ClientState.LocalPlayer!.Name.TextValue;
 			var playerWorld = DalamudDll.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
-			File.Delete(Path.Join(tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
+			File.Delete(Path.Join(_tradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
 		}
 
 		public void Dispose()

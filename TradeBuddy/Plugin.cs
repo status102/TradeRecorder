@@ -38,11 +38,8 @@ namespace TradeBuddy
 
 			this.CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
 			{
-				HelpMessage = "/tb 打开历史记录" +"\n /tb config|cfg 打开设置窗口"
+				HelpMessage = "/tb 打开历史记录\n /tb config|cfg 打开设置窗口"
 			});
-#if DEBUG
-			DalamudDll.ChatGui.Print($"[{Name}]加载完成");
-#endif
 
 			this.PluginInterface.UiBuilder.Draw += DrawUI;
 			this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
@@ -50,6 +47,9 @@ namespace TradeBuddy
 
 		public void Dispose()
 		{
+			
+			this.PluginInterface.UiBuilder.Draw -= DrawUI;
+			this.PluginInterface.UiBuilder.OpenConfigUi -= DrawConfigUI;
 			this.PluginUi.Dispose();
 			this.CommandManager.RemoveHandler(commandName);
 		}
@@ -73,7 +73,7 @@ namespace TradeBuddy
 
 		private void DrawConfigUI()
 		{
-			this.PluginUi.SettingsVisible = true;
+			this.PluginUi.SettingsVisible = !this.PluginUi.SettingsVisible;
 		}
 	}
 }

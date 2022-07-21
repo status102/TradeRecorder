@@ -1,5 +1,5 @@
 # TradeBuddy
-[![](https://img.shields.io/badge/dynamic/xml?label=version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy.csproj)]()
+[![](https://img.shields.io/badge/dynamic/xml?color=success&label=project%20version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy.csproj)]()
 [![](https://img.shields.io/github/v/release/status102/TradeBuddy.svg)](https://github.com/status102/TradeBuddy/releases/latest)
 
 记录交易的内容并根据预先设定计算交易金额，不会自动填写进交易窗口。
@@ -15,6 +15,16 @@ Record the content of the transaction and calculate the transaction amount accor
 例：200/2;250/3，交易数量为4个时先判断3是否整除，3无法整除继续判断，2能整除则2匹配成功。
 
 暂不支持多方案复合匹配，如交易数量为5个时匹配为2+3
+
+## 使用方法
+
+/tb 打开交易历史记录窗口，查看过往交易
+
+![](https://github.com/status102/TradeBuddy/raw/master/Image/History.png)
+
+/tb cfg 打开设置窗口设置物品的预期价格
+
+![](https://github.com/status102/TradeBuddy/raw/master/Image/Setting.png)
 
 ## Todo
 

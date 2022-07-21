@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TradeBuddy
 {
@@ -89,8 +90,8 @@ namespace TradeBuddy
 		/// 主窗口大小
 		/// </summary>
 		private const int Width = 540, Height = 480;
-		private readonly static string[] Header_Title = new string[] { "", "物品", "数量", "预期金额", "最低价" };
-		private readonly static float[] Col_Width = new float[] { 20, -1, 120, 150, 120 };
+		private readonly static string[] Header_Title = { "", "物品", "数量", "预期金额", "最低价" };
+		private readonly static float[] Col_Width = { 20, -1, 120, 150, 120 };
 		private const int Row_Height = 20;
 		private readonly static Vector2 Image_Size = new(20, 20);
 		private readonly TextureWrap? Gil_Image = Configuration.GetIcon(65002, false);

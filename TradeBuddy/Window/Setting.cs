@@ -3,6 +3,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
+using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace TradeBuddy.Window
 		/// <summary>
 		/// 每个道具的图片大小
 		/// </summary>
+		private readonly static Vector2 FORM_SIZE = new(720, 640);
 		private readonly static Vector2 IMAGE_SIZE = new(54, 54);
 		private readonly static Vector4 Alert_Color = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
 		private const int Item_width = 190, Item_Interval = 5;
@@ -45,7 +47,7 @@ namespace TradeBuddy.Window
 				itemList.ForEach(item => { if (item.minPrice == -1) item.UpdateMinPrice(); });
 				firstDraw = false;
 			}
-			ImGui.SetNextWindowSize(new Vector2(720, 640));
+			ImGui.SetNextWindowSize(FORM_SIZE, ImGuiCond.FirstUseEver);
 			if (ImGui.Begin(_tradeBuddy.Name + "插件设置", ref _settingVisible))
 			{
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen))
@@ -54,23 +56,14 @@ namespace TradeBuddy.Window
 					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade)) Config.Save();
 
 					ImGui.SetNextItemWidth(300);
-					string str1 = Config.TradeConfirmStr;
-					if (ImGui.InputText("##确认交易字符串", ref Config.TradeConfirmStr, 256))
-					{
-						Config.TradeConfirmStr = str1;
-						Config.Save();
-					}
+					if (ImGui.InputText("##确认交易字符串", ref Config.TradeConfirmStr, 256)) Config.Save();
+
 
 					ImGui.SameLine();
 					if (ImGui.Checkbox("确认交易后提示", ref Config.TradeConfirmAlert)) Config.Save();
 
 					ImGui.SetNextItemWidth(300);
-					var str2 = Config.TradeCancelStr;
-					if (ImGui.InputText("##取消交易字符串", ref Config.TradeCancelStr, 256))
-					{
-						Config.TradeCancelStr = str2;
-						Config.Save();
-					}
+					if (ImGui.InputText("##取消交易字符串", ref Config.TradeCancelStr, 256)) Config.Save();
 
 					ImGui.SameLine();
 					if (ImGui.Checkbox("取消交易后提示", ref Config.TradeCancelAlert)) Config.Save();
@@ -212,7 +205,7 @@ namespace TradeBuddy.Window
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) save = true;
 
 						var itemNameArray = new List<string>();
-						if (!string.IsNullOrEmpty(nameLabel)) DalamudDll.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.Where(i => i.Name.ToString().Contains(nameLabel)).OrderBy(i => i.Name.ToString()).ToList().ForEach(i => itemNameArray.Add(i.Name.ToString()));
+						if (!string.IsNullOrEmpty(nameLabel)) DalamudDll.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(nameLabel)).OrderBy(i => i.Name.ToString()).ToList().ForEach(i => itemNameArray.Add(i.Name.ToString()));
 
 						int current_index = -1;
 						string[] items = itemNameArray.ToArray();
