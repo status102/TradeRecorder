@@ -16,6 +16,7 @@ namespace TradeBuddy
 		public History History { get; init; }
 		public Trade Trade { get; init; }
 		public Setting Setting { get; init; }
+		public TradeBuddy TradeBuddy { get; init; }
 
 		public RetainerSellList RetainerSellList { get; init; }
 		public ItemSearchResult ItemSearchResult { get; init; }
@@ -25,20 +26,18 @@ namespace TradeBuddy
 		private bool visible = false;
 		public bool Visible
 		{
-			get { return this.visible; }
+			get => this.visible;
 			set { this.visible = value; }
 		}
 
 		private bool settingsVisible = false;
 		public bool SettingsVisible
 		{
-			get { return this.settingsVisible; }
+			get => this.settingsVisible;
 			set { this.settingsVisible = value; }
 		}
 
 		public bool historyVisible = false;//交易历史界面是否可见
-
-		public bool onceVisible = true;//保存单次交易时，监控窗口是否显示
 		/// <summary>
 		/// 交易时候的二次确认
 		/// </summary>
@@ -46,36 +45,32 @@ namespace TradeBuddy
 
 		public StreamWriter? networkMessageWriter;
 
-		public unsafe PluginUI(Configuration configuration)
+		public unsafe PluginUI(TradeBuddy TradeBuddy, Configuration configuration)
 		{
 			this.configuration = configuration;
-			Trade = new Trade(TradeBuddy.Instance);
-			History = new History(TradeBuddy.Instance);
-			Setting = new Setting(TradeBuddy.Instance);
-			RetainerSellList = new RetainerSellList(TradeBuddy.Instance);
-			ItemSearchResult = new ItemSearchResult(TradeBuddy.Instance);
+			this.TradeBuddy = TradeBuddy;
+			Trade = new (TradeBuddy);
+			History = new (TradeBuddy);
+			Setting = new (TradeBuddy);
+			RetainerSellList = new (TradeBuddy);
+			ItemSearchResult = new (TradeBuddy);
 
 			var atkArrayDataHolder = &Framework.Instance()->GetUiModule()->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
 			if (atkArrayDataHolder != null && atkArrayDataHolder->StringArrayCount > 0) this.atkArrayDataHolder = atkArrayDataHolder;
 
-			DalamudDll.ChatGui.ChatMessage += Trade.MessageDelegate;
-			DalamudDll.GameNetwork.NetworkMessage += networkMessageDelegate;
-#if DEBUG
-			DalamudDll.ChatGui.ChatMessage += Custom.MessageDelegate;//自定义调试用代码，应当删除
-#endif
+			TradeBuddy.GameNetwork.NetworkMessage += networkMessageDelegate;
+
 		}
 
 		public void Dispose()
 		{
 			configuration.Dispose();
 
+			Trade.Dispose();
 			Setting.Dispose();
 			History.Dispose();
-#if DEBUG
-			DalamudDll.ChatGui.ChatMessage -= Custom.MessageDelegate;//自定义调试用代码，应当删除
-#endif
-			DalamudDll.ChatGui.ChatMessage -= Trade.MessageDelegate;
-			DalamudDll.GameNetwork.NetworkMessage -= networkMessageDelegate;
+
+			TradeBuddy.GameNetwork.NetworkMessage -= networkMessageDelegate;
 
 			if (networkMessageWriter != null)
 			{
@@ -86,9 +81,9 @@ namespace TradeBuddy
 
 		public void Draw()
 		{
-			Trade.DrawTrade(configuration.ShowTrade, ref onceVisible, ref twiceCheck, ref historyVisible, ref settingsVisible);
-			History.DrawHistory(ref historyVisible);
-			Setting.DrawSetting(ref settingsVisible);
+			Trade.Draw(configuration.ShowTrade, ref twiceCheck, ref historyVisible, ref settingsVisible);
+			History.Draw(ref historyVisible);
+			Setting.Draw(ref settingsVisible);
 			RetainerSellList.Draw();
 			ItemSearchResult.Draw();
 		}

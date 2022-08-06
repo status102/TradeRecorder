@@ -5,22 +5,18 @@ using System.Text;
 
 namespace TradeBuddy.Window
 {
-	public class ItemSearchResult
+	public class ItemSearchResult : IWindow
 	{
+		private readonly TradeBuddy TradeBuddy;
+		private Configuration Config => TradeBuddy.Configuration;
 		private bool addition = false;
-		private TradeBuddy _tradeBuddy;
-		private Configuration Config => _tradeBuddy.Configuration;
-		public ItemSearchResult(TradeBuddy tradeBuddy)
-		{
-			_tradeBuddy = tradeBuddy;
-		}
 
 		/// <summary>
 		/// 板子出售列表显示预期价格
 		/// </summary>
 		public unsafe void Draw()
 		{
-			var itemSearchResultPtr = DalamudDll.GameGui.GetAddonByName("ItemSearchResult", 1);
+			var itemSearchResultPtr = TradeBuddy.GameGui.GetAddonByName("ItemSearchResult", 1);
 			if (itemSearchResultPtr == IntPtr.Zero)
 			{
 				addition = false;
@@ -69,5 +65,12 @@ namespace TradeBuddy.Window
 				}
 			}
 		}
+
+		#region init
+		public ItemSearchResult(TradeBuddy tradeBuddy) {
+			TradeBuddy = tradeBuddy;
+		}
+		public void Dispose() { }
+		#endregion
 	}
 }

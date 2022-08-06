@@ -5,7 +5,7 @@
     "Punchline": "记录交易历史，根据预期价格计算交易金额，并在雇员出售列表和市场布告板",
     "Description": "记录交易历史，根据预期价格计算预期交易金额。雇员出售列表中的道具如果有设置预期价格，单价绿色为大于等于预期价格，小于时则为红色。在市场布告板搜索道具时，在物品名字处显示预期价格。",
     "InternalName": "TradeBuddy",
-    "AssemblyVersion": "0.0.2.4",
+    "AssemblyVersion": "0.0.2.6",
     "RepoUrl": "https://github.com/status102/TradeBuddy",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 5,

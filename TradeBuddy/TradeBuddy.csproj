@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors>status102</Authors>
-    <Version>0.0.2.4</Version>
+    <Version>0.0.2.6</Version>
 
   </PropertyGroup>
 
@@ -50,6 +50,10 @@
     <EmbeddedResource Remove="Image\**" />
     <None Remove="Data\**" />
     <None Remove="Image\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Custom.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -20,14 +20,14 @@ namespace TradeBuddy.Universalis.API
 		/// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
 		/// <returns>The market data.</returns>
 
-		public static async Task<CurrentlyShownView?> GetMarketData(uint itemId, string worldName, int listCount, int historyCount, CancellationToken cancellationToken)
+		public static async Task<CurrentlyShownView?> GetMarketData(string worldName,uint itemId,  CancellationToken cancellationToken, int listCount = 1, int historyCount = 0)
 		{
 			var uriBuilder = new UriBuilder($"https://universalis.app/api/v2/{worldName}/{itemId}?listings={listCount}&entries={historyCount}");
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-
 			var client = new HttpClient();
+			client.Timeout = TimeSpan.FromSeconds(20);
 			var res = await client
 			  //.SendAsync(new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri),cancellationToken)
 			  //.GetAsync(uriBuilder.Uri, cancellationToken)
