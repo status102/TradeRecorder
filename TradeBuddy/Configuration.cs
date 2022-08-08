@@ -24,14 +24,6 @@ namespace TradeBuddy
 		/// </summary>
 		public bool ShowTrade = true;
 
-		/// <summary>
-		/// 要求交易数量严格遵循某个预设单价的整数倍，否则尝试进行填充，暂时没用
-		/// </summary>
-		[NonSerialized]
-		public bool StrictMode = true;
-		[NonSerialized]
-		public const int outOfTime = 30 * 1000;
-
 		public string TradeConfirmStr = "交易完成。";
 		public string TradeCancelStr = "交易取消。";
 		public bool TradeConfirmAlert = true;

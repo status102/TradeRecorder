@@ -26,8 +26,10 @@ namespace TradeBuddy.Universalis.API
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var client = new HttpClient();
-			client.Timeout = TimeSpan.FromSeconds(20);
+			var client = new HttpClient
+			{
+				Timeout = TimeSpan.FromSeconds(20)
+			};
 			var res = await client
 			  //.SendAsync(new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri),cancellationToken)
 			  //.GetAsync(uriBuilder.Uri, cancellationToken)

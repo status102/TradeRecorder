@@ -1,11 +1,9 @@
-﻿using Dalamud.Data;
-using Dalamud.Logging;
+﻿using Dalamud.Logging;
 using ImGuiScene;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,18 +31,16 @@ namespace TradeBuddy.Model
 		public int minPrice { get; private set; } = -2;
 		public string minPriceServer { get; private set; } = "";
 
-		public string minPriceStr {
-			get {
-				return minPrice switch
-				{
-					-1 => "获取失败",
-					0 => "获取中",
-					_ => $"{minPrice:#,0}"
-				};
-			}
-		}
-
 		public Dictionary<int, int> priceList = new();
+
+		public string GetMinPriceStr() =>
+			 minPrice switch
+			 {
+				 -1 => "获取失败",
+				 0 => "获取中",
+				 _ => $"{minPrice:#,0}"
+			 };
+
 
 		public void UpdateMinPrice() {
 
@@ -52,26 +48,34 @@ namespace TradeBuddy.Model
 			uint itemId = 0;
 			string worldName = Configuration.GetWorldName();
 			var itemByName = TradeBuddy.Instance?.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == (isHQ ? name[0..^2] : name));
-			if (itemByName != null)
-				itemId = itemByName.RowId;
-			if (itemId > 1 && !string.IsNullOrEmpty(worldName)) {
-				Task.Run(async () =>
-				{
-					try {
-						var price = await Universalis.API.UniversalisClient.GetMarketData(worldName, itemId, CancellationToken.None);
-						if (price == null || price.itemID != itemId)
-							minPrice = -1;
-						else {
-							minPrice = isHQ ? price.minPriceHQ : Math.Min(price.minPriceNQ, price.minPriceHQ);
-							minPriceServer = price.listings?[0].worldName ?? "";
-						}
-					} catch (HttpRequestException e) {
-						PluginLog.Error(e.ToString());
-						minPrice = -1;
-					}
-				});
-			} else
+			if (itemByName == null) {
 				minPrice = -1;
+			} else {
+				itemId = itemByName.RowId;
+				if (itemId > 1 && !string.IsNullOrEmpty(worldName)) {
+					Task.Run(async () =>
+					{
+						try {
+							var price = await Universalis.API.UniversalisClient.GetMarketData(worldName, itemId, CancellationToken.None);
+							if (price == null || price.itemID != itemId)
+								minPrice = -1;
+							else {
+								if (isHQ)
+									minPrice = price.minPriceHQ;
+								else if (price.minPriceNQ > 0 && price.minPriceHQ > 0)
+									minPrice = Math.Min(price.minPriceNQ, price.minPriceHQ);
+								else
+									minPrice = price.minPriceNQ;
+								minPriceServer = price.listings?[0].worldName ?? "";
+							}
+						} catch (HttpRequestException e) {
+							PluginLog.Error(e.ToString());
+							minPrice = -1;
+						}
+					});
+				} else
+					minPrice = -1;
+			}
 		}
 	}
 }

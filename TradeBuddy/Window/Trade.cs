@@ -41,10 +41,10 @@ namespace TradeBuddy
 		private TradeItem[] receiveItem = new TradeItem[5] { new(), new(), new(), new(), new() };
 
 		private string tradeTarget = "";
-		private int giveGil = 0, receiveGil = 0, tradeGiveGil = 0, tradeReceiveGil = 0;
-		/// <summary>
-		/// 交易的物品，确认交易时存入
-		/// </summary>
+		private int giveGil = 0, receiveGil = 0;
+		
+		//交易的物品和金币，在进入二次确认的时候暂存，防止记录时失败存0
+		private int tradeGiveGil = 0, tradeReceiveGil = 0;
 		private List<KeyValuePair<string, int>> tradeGiveItem = new(), tradeReceiveItem = new();
 
 		private bool firstTrade = true;
@@ -298,7 +298,6 @@ namespace TradeBuddy
 					itemArray[i].price = 0;
 				} else {
 					if (itemArray[i].price == 0) {
-						if (Config.StrictMode) {
 							var countList = itemArray[i].priceList.Keys.ToList();
 							countList.Sort(PresetItem.Sort);
 							foreach (int num in countList) {
@@ -307,9 +306,6 @@ namespace TradeBuddy
 									break;
 								}
 							}
-						} else {
-							// todo 计算非严格模式下价格计算，没辙
-						}
 					}
 					ImGui.TextColored(color[itemArray[i].priceType], $"{itemArray[i].price:#,0}");
 					if (ImGui.IsItemClicked())
@@ -317,9 +313,9 @@ namespace TradeBuddy
 				}
 
 				ImGui.TableNextColumn();
-				ImGui.TextUnformatted(itemArray[i].minPriceStr);
+				ImGui.TextUnformatted(itemArray[i].GetMinPriceStr());
 				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"{itemArray[i].minPriceStr}<{itemArray[i].minPriceServer}>");
+					ImGui.SetTooltip($"{itemArray[i].GetMinPriceStr()}<{itemArray[i].minPriceServer}>");
 			}
 
 			ImGui.TableNextRow(ImGuiTableRowFlags.None, Row_Height);
@@ -331,21 +327,29 @@ namespace TradeBuddy
 			ImGui.TableNextColumn();
 			ImGui.TextUnformatted($"{gilTextNode->NodeText}");
 
-			ImGui.TableNextColumn();
-
 			gil = Convert.ToInt32("0" + gilTextNode->NodeText.ToString().Replace(",", String.Empty).Trim());
 
 			float sum = 0;
 			ImGui.TableNextColumn();
-			for (int i = 0; i < 5; i++)
-				sum += itemArray[i].price;
+			foreach (var item in itemArray) 
+				sum += item.price;
 
 			sum += gil;
 			ImGui.TextUnformatted($"{sum:#,0}");
 			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip("包含金币在内的全部金额");
+				ImGui.SetTooltip("包含金币在内的全部金额，单击复制");
 			if (ImGui.IsItemClicked())
 				ImGui.SetClipboardText($"{sum:#,0}");
+
+			ImGui.TableNextColumn();
+			int min = 0;
+			ImGui.TableNextColumn();
+			foreach (var item in itemArray) {
+				if (item.minPrice > 0)
+					min += item.minPrice * item.count;
+			}
+			ImGui.TextUnformatted($"{min:#,0}");
+
 			ImGui.EndTable();
 		}
 
