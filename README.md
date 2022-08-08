@@ -1,5 +1,5 @@
 # TradeBuddy
-[![](https://img.shields.io/badge/dynamic/xml?color=success&label=repo%20version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy%2FTradeBuddy.csproj)]()
+[![](https://img.shields.io/badge/dynamic/xml?color=success&label=repo%20version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeBuddy%2Fmaster%2FTradeBuddy%2FTradeBuddy.csproj)](https://github.com/status102/TradeBuddy/raw/master/latest.zip)
 [![](https://img.shields.io/github/v/release/status102/TradeBuddy.svg)](https://github.com/status102/TradeBuddy/releases/latest)
 
 记录交易的内容并根据预先设定计算交易金额，不会自动填写进交易窗口。
