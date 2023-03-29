@@ -30,8 +30,8 @@ namespace TradeBuddy.Window
 			this.TradeBuddy = tradeBuddy;
 			itemList = tradeBuddy.Configuration.PresetItemList;
 		}
-		public void Draw(ref bool _settingVisible) {
-			if (!_settingVisible) {
+		public void Draw(ref bool settingVisible) {
+			if (!settingVisible) {
 				firstDraw = true;
 				editIndex = -1;
 				return;
@@ -43,7 +43,7 @@ namespace TradeBuddy.Window
 				firstDraw = false;
 			}
 			ImGui.SetNextWindowSize(Window_Size, ImGuiCond.FirstUseEver);
-			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref _settingVisible)) {
+			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref settingVisible)) {
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen)) {
 					ImGui.Indent();
 					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade))

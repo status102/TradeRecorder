@@ -12,7 +12,7 @@ namespace TradeBuddy.Window
 		public readonly static byte[] START_BYTE = new byte[] { 0x02, 0x48, 0x04, 0xF2, 0x02, 0x25, 0x03, 0x02, 0x49, 0x04, 0xF2, 0x02, 0x26, 0x03 };
 		public readonly static byte[] END_BYTE = new byte[] { 0x02, 0x49, 0x02, 0x01, 0x03, 0x02, 0x48, 0x02, 0x01, 0x03 };
 
-		private Dictionary<string, float> _priceList = new();
+		private Dictionary<string, float> priceList = new();
 		private readonly TradeBuddy TradeBuddy;
 		private Configuration Config => TradeBuddy.Configuration;
 
@@ -23,12 +23,12 @@ namespace TradeBuddy.Window
 		public unsafe void Draw() {
 			var sellListFormAddess = TradeBuddy.GameGui.GetAddonByName("RetainerSellList", 1);
 			if (sellListFormAddess == IntPtr.Zero) {
-				_priceList.Clear();
+				priceList.Clear();
 				return;
 			}
 
 			var sellListForm = (AtkUnitBase*)sellListFormAddess;
-			if (sellListForm->UldManager.LoadedState == 3 && sellListForm->UldManager.NodeListCount == 20) {
+			if (sellListForm->UldManager.LoadedState == AtkLoadState.Loaded && sellListForm->UldManager.NodeListCount == 20) {
 				var sellList = sellListForm->UldManager.NodeList[10];
 				if (sellList->GetAsAtkComponentNode()->Component->UldManager.NodeListCount == 17) {
 					for (int i = 1; i < 14; i++) {
@@ -66,17 +66,17 @@ namespace TradeBuddy.Window
 								//todo 增加异常处理
 								name = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
 
-								if (_priceList.ContainsKey(name)) {
+								if (priceList.ContainsKey(name)) {
 									try {
 										//获取到雇员出售列表里面的价格
 										int price = Convert.ToInt32(priceNode->NodeText.ToString().Replace(",", "").TrimEnd('').Trim());
 
-										if (price >= _priceList[name] && Config.DrawRetainerSellListProper) {
+										if (price >= priceList[name] && Config.DrawRetainerSellListProper) {
 											//雇员出售价格合适
 											priceNode->TextColor.R = (byte)Config.SellList.ProperColorArray[0];
 											priceNode->TextColor.G = (byte)Config.SellList.ProperColorArray[1];
 											priceNode->TextColor.B = (byte)Config.SellList.ProperColorArray[2];
-										} else if (price < _priceList[name] && Config.DrawRetainerSellListAlert) {
+										} else if (price < priceList[name] && Config.DrawRetainerSellListAlert) {
 											//雇员出售价格过低
 											priceNode->TextColor.R = (byte)Config.SellList.AlertColorArray[0];
 											priceNode->TextColor.G = (byte)Config.SellList.AlertColorArray[1];
@@ -93,7 +93,7 @@ namespace TradeBuddy.Window
 									foreach (PresetItem presetItem in Config.PresetItemList) {
 										if (presetItem.ItemName == name) {
 											if (presetItem.EvaluatePrice() != 0)
-												_priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
+												priceList.Add(presetItem.ItemName, presetItem.EvaluatePrice());
 											break;
 										}
 									}

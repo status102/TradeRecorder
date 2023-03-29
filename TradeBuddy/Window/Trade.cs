@@ -22,11 +22,11 @@ namespace TradeBuddy
 		/// 主窗口大小
 		/// </summary>
 		private const int Width = 540, Height = 560;
-		private readonly static string[] Header_Title = { "", "物品", "数量", "预期金额", "最低价" };
+		private readonly static string[] Header_Title = { "", "物品", "数量", "预期", "最低价" };
 		private readonly static float[] Col_Width = { 26, -1, 120, 150, 120 };
 		private readonly static Vector2 Image_Size = new(26, 26);
 		private const int Row_Height = 30;
-		private  TextureWrap? Gil_Image => TradeBuddy.GetIcon(65002);
+		private TextureWrap? Gil_Image => TradeBuddy.GetIcon(65002);
 
 
 
@@ -42,7 +42,7 @@ namespace TradeBuddy
 
 		private string tradeTarget = "";
 		private int giveGil = 0, receiveGil = 0;
-		
+
 		//交易的物品和金币，在进入二次确认的时候暂存，防止记录时失败存0
 		private int tradeGiveGil = 0, tradeReceiveGil = 0;
 		private List<KeyValuePair<string, int>> tradeGiveItem = new(), tradeReceiveItem = new();
@@ -65,7 +65,7 @@ namespace TradeBuddy
 				return;
 
 			var trade = (AtkUnitBase*)tradeAddess;
-			if (trade->UldManager.LoadedState != 3 || trade->UldManager.NodeListCount <= 0)
+			if (trade->UldManager.LoadedState != AtkLoadState.Loaded || trade->UldManager.NodeListCount <= 0)
 				return;//等待交易窗口加载完毕
 
 
@@ -162,7 +162,7 @@ namespace TradeBuddy
 				if (receiveChecked && giveChecked)//双方交易确认，进入最终确认状态
 				{
 					var selectYesno = TradeBuddy.GameGui.GetAddonByName("SelectYesno", 1);
-					if (selectYesno != IntPtr.Zero && ((AtkUnitBase*)selectYesno)->UldManager.LoadedState == 3) {
+					if (selectYesno != IntPtr.Zero && ((AtkUnitBase*)selectYesno)->UldManager.LoadedState == AtkLoadState.Loaded) {
 						//var yesButton = ((AtkUnitBase*)selectYesno)->UldManager.NodeList[11];
 						//var noButton = ((AtkUnitBase*)selectYesno)->UldManager.NodeList[8];
 						if (!twiceCheck) {
@@ -298,14 +298,14 @@ namespace TradeBuddy
 					itemArray[i].price = 0;
 				} else {
 					if (itemArray[i].price == 0) {
-							var countList = itemArray[i].priceList.Keys.ToList();
-							countList.Sort(PresetItem.Sort);
-							foreach (int num in countList) {
-								if (itemArray[i].count / num * num == itemArray[i].count) {
-									itemArray[i].price = itemArray[i].count / num * itemArray[i].priceList[num];
-									break;
-								}
+						var countList = itemArray[i].priceList.Keys.ToList();
+						countList.Sort(PresetItem.Sort);
+						foreach (int num in countList) {
+							if (itemArray[i].count / num * num == itemArray[i].count) {
+								itemArray[i].price = itemArray[i].count / num * itemArray[i].priceList[num];
+								break;
 							}
+						}
 					}
 					ImGui.TextColored(color[itemArray[i].priceType], $"{itemArray[i].price:#,0}");
 					if (ImGui.IsItemClicked())
@@ -331,7 +331,7 @@ namespace TradeBuddy
 
 			float sum = 0;
 			ImGui.TableNextColumn();
-			foreach (var item in itemArray) 
+			foreach (var item in itemArray)
 				sum += item.price;
 
 			sum += gil;
@@ -349,6 +349,10 @@ namespace TradeBuddy
 					min += item.minPrice * item.count;
 			}
 			ImGui.TextUnformatted($"{min:#,0}");
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("以最低价计算的金额，单击复制");
+			if (ImGui.IsItemClicked())
+				ImGui.SetClipboardText($"{min:#,0}");
 
 			ImGui.EndTable();
 		}
@@ -379,6 +383,7 @@ namespace TradeBuddy
 							historyGiveMap[pair.Key] += pair.Value;
 						else
 							historyGiveMap[pair.Key] = pair.Value;
+						HistoryStack(ref historyGiveMap, pair.Key);
 					});
 					tradeReceiveItem.ForEach(pair =>
 					{
@@ -386,17 +391,18 @@ namespace TradeBuddy
 							historyReceiveMap[pair.Key] += pair.Value;
 						else
 							historyReceiveMap[pair.Key] = pair.Value;
+						HistoryStack(ref historyReceiveMap, pair.Key);
 					});
 
 					if (Config.TradeConfirmAlert) {
-						var giveList = tradeGiveItem.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
-						var receiveList = tradeReceiveItem.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
+						var giveList = tradeGiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
+						var receiveList = tradeReceiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
 						giveList.Insert(0, $"{tradeGiveGil:#,0}G");
 						receiveList.Insert(0, $"{tradeReceiveGil:#,0}G");
 
 
-						var historyGiveList = historyGiveMap.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
-						var historyReceiveList = historyReceiveMap.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
+						var historyGiveList = historyGiveMap.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
+						var historyReceiveList = historyReceiveMap.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
 						historyGiveList.Insert(0, $"{historyGiveGil:#,0}G");
 						historyReceiveList.Insert(0, $"{historyReceiveGil:#,0}G");
 
@@ -412,8 +418,8 @@ namespace TradeBuddy
 				} else if (message.TextValue == Config.TradeCancelStr) {
 					TradeUI.History.AddHistory(false, tradeTarget, tradeGiveGil, tradeReceiveGil, tradeGiveItem, tradeReceiveItem);
 
-					var giveList = tradeGiveItem.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
-					var receiveList = tradeReceiveItem.Select(kp => $"{kp.Key}x{kp.Value}").ToList();
+					var giveList = tradeGiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
+					var receiveList = tradeReceiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
 					giveList.Insert(0, $"{tradeGiveGil:#,0}G");
 					receiveList.Insert(0, $"{tradeReceiveGil:#,0}G");
 					if (Config.TradeCancelAlert) {
@@ -423,6 +429,21 @@ namespace TradeBuddy
 					}
 				}
 			}
+		}
+
+		private void HistoryStack(ref Dictionary<string, int> map, string itemName) {
+			var itemByName = TradeBuddy.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
+			if (itemByName != null && itemByName.StackSize > 1 && map[itemName] >= itemByName.StackSize) {
+				if (map.ContainsKey($"{itemName}(组)")) {
+					map[$"{itemName}(组)"] += map[itemName] / (int)itemByName.StackSize;
+				} else {
+					map[$"{itemName}(组)"] = map[itemName] / (int)itemByName.StackSize;
+				}
+				map[itemName] = map[itemName] % (int)itemByName.StackSize;
+				if (map[itemName] == 0)
+					map.Remove(itemName);
+			}
+
 		}
 
 		public Trade(TradeBuddy tradeBuddy) {

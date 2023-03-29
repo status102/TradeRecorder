@@ -13,10 +13,11 @@ namespace TradeBuddy.Model
 		private const char PART_SPLIT = ';';
 		private const char ITEM_SPLIT = ',';
 		private const char COUNT_SPLIT = 'x';
+		
+		public string time { get; init; } = DateTime.Now.ToString(TIME_FORMAT);
 		/// <summary>
 		/// 是否显示该项目
 		/// </summary>
-		public string time { get; init; } = DateTime.Now.ToString(TIME_FORMAT);
 		public bool visible = true;
 		public bool isSuccess { get; init; } = true;
 		public string targetName { get; init; } = "";

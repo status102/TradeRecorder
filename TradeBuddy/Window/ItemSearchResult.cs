@@ -24,7 +24,7 @@ namespace TradeBuddy.Window
 			}
 			if (addition) return;
 			var sellListForm = (AtkUnitBase*)itemSearchResultPtr;
-			if (sellListForm->UldManager.LoadedState == 3 && sellListForm->UldManager.NodeListCount == 29)
+			if (sellListForm->UldManager.LoadedState == AtkLoadState.Loaded && sellListForm->UldManager.NodeListCount == 29)
 			{
 				addition = true;
 
