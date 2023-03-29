@@ -5,6 +5,7 @@ using Dalamud.Game.Gui;
 using Dalamud.Game.Network;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using ImGuiScene;
 using System;
 using System.Collections.Generic;
@@ -93,6 +94,7 @@ namespace TradeBuddy
 			}
 			if (arg == "cfg" || arg == "config")
 				this.PluginUi.SettingsVisible = true;
+			
 		}
 
 		private void DrawUI() {

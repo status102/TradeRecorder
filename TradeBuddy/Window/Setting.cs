@@ -23,7 +23,7 @@ namespace TradeBuddy.Window
 		private int editIndex = -1, moreEditIndex = -1;
 		private string nameLabel = "", priceLabel = "";
 		private readonly List<PresetItem> itemList;
-		private  TextureWrap? failureImage => TradeBuddy.GetIcon(784);
+		private TextureWrap? failureImage => TradeBuddy.GetIcon(784);
 		private readonly TradeBuddy TradeBuddy;
 		private Configuration Config => TradeBuddy.Configuration;
 		public Setting(TradeBuddy tradeBuddy) {
@@ -65,6 +65,7 @@ namespace TradeBuddy.Window
 					if (ImGui.Checkbox("取消交易后提示", ref Config.TradeCancelAlert))
 						Config.Save();
 
+					#region 
 					if (ImGui.Checkbox("##绘制不低于预期", ref Config.DrawRetainerSellListProper))
 						Config.Save();
 
@@ -75,14 +76,22 @@ namespace TradeBuddy.Window
 						Config.SellList.ProperColor = properColor;
 						Config.Save();
 					}
+					// 重置为默认颜色
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(0, FontAwesomeIcon.Reply)) {
+					ImGui.PushID(0);
+					ImGui.PushFont(UiBuilder.IconFont);
+					if (ImGui.Button(FontAwesomeIcon.Reply.ToIconString())) {
 						Array.Copy(Configuration.RetainerSellList.Proper_Color_Default, Config.SellList.ProperColorArray, 3);
 						Config.Save();
 					}
+					ImGui.PopFont();
+					ImGui.PopID();
+
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("重置");
+					#endregion
 
+					#region
 					if (ImGui.Checkbox("##绘制低于预期", ref Config.DrawRetainerSellListAlert))
 						Config.Save();
 					ImGui.SameLine();
@@ -93,13 +102,20 @@ namespace TradeBuddy.Window
 						Config.SellList.AlertColor = alertColor;
 						Config.Save();
 					}
+					// 重置为默认颜色
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(1, FontAwesomeIcon.Reply)) {
+					ImGui.PushID(1);
+					ImGui.PushFont(UiBuilder.IconFont);
+					if (ImGui.Button(FontAwesomeIcon.Reply.ToIconString())) {
 						Array.Copy(Configuration.RetainerSellList.Alert_Color_Default, Config.SellList.AlertColorArray, 3);
 						Config.Save();
 					}
+					ImGui.PopFont();
+					ImGui.PopID();
+
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("重置");
+					#endregion
 
 					ImGui.Unindent();
 				}
@@ -108,7 +124,7 @@ namespace TradeBuddy.Window
 
 					#region 编辑块
 					//添加预期的按钮
-					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Plus)) {
+					if (Utils.DrawIconButton(FontAwesomeIcon.Plus, -1)) {
 						editIndex = -2;
 
 						string clipboard = "";
@@ -130,7 +146,7 @@ namespace TradeBuddy.Window
 
 					//删除所有预期
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Trash)) {
+					if (Utils.DrawIconButton(FontAwesomeIcon.Trash, -1)) {
 						itemList.Clear();
 						Config.Save();
 					}
@@ -139,21 +155,21 @@ namespace TradeBuddy.Window
 
 					//手动刷新价格
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Sync))
+					if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -1))
 						itemList.ForEach(item => item.UpdateMinPrice());
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("重新获取所有价格(数据来自Universalis)");
 
 					//导出到剪贴板
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Upload))
+					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1))
 						ImGui.SetClipboardText(string.Join('\n', itemList.Select(i => i.ToString())));
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("导出到剪贴板");
 
 					//从剪贴板导入
 					ImGui.SameLine();
-					if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Download)) {
+					if (Utils.DrawIconButton(FontAwesomeIcon.Download, -1)) {
 						try {
 							string clipboard = ImGui.GetClipboardText().Trim();
 							string[] strLine = clipboard.Split('\n');
@@ -179,12 +195,12 @@ namespace TradeBuddy.Window
 						bool save = false;
 						//保存设置
 						ImGui.SameLine();
-						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Check) && !string.IsNullOrEmpty(nameLabel))
+						if (Utils.DrawIconButton(FontAwesomeIcon.Check,-1) && !string.IsNullOrEmpty(nameLabel))
 							save = true;
 
 						//取消编辑
 						ImGui.SameLine();
-						if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Times))
+						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1))
 							editIndex = -1;
 
 						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
@@ -269,7 +285,7 @@ namespace TradeBuddy.Window
 
 				ImGui.EndChild();
 			}
-			
+
 			if (ImGui.IsItemHovered()) {
 				ImGui.BeginTooltip();
 				ImGui.TextUnformatted($"物品名: {item.ItemName}");
@@ -291,22 +307,24 @@ namespace TradeBuddy.Window
 				}
 			}
 			if (ImGui.BeginPopup($"MoreEdit-{index}", ImGuiWindowFlags.NoMove)) {
+				
 				// 编辑当前物品
-				if (ImGuiComponents.IconButton(-moreEditIndex - 1, FontAwesomeIcon.Edit)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Edit, -moreEditIndex - 1)) {
 					editIndex = moreEditIndex;
 					nameLabel = itemList[moreEditIndex].ItemName;
 					priceLabel = itemList[moreEditIndex].GetPriceStr();
 					ImGui.CloseCurrentPopup();
 				}
+
 				// 重新获取当前物品的最低价格
 				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(-moreEditIndex - 2, FontAwesomeIcon.Sync)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -moreEditIndex - 2)) {
 					itemList[moreEditIndex].UpdateMinPrice();
 					ImGui.CloseCurrentPopup();
 				}
 				// 删除当前物品
 				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(-moreEditIndex - 3, FontAwesomeIcon.Trash)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Trash, -moreEditIndex - 3)) {
 					itemList.RemoveAt(moreEditIndex);
 					Config.Save();
 					editIndex = -1;
