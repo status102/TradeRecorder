@@ -66,14 +66,18 @@ namespace TradeBuddy.Window
 						var savePath = resultList[0].Trim();
 						if (!savePath.EndsWith(".csv"))
 							savePath += ".csv";
-						SaveHistory(savePath);
+						ExportHistory(savePath);
 					}
 				}
 			}
 
 		}
 
-		// 绘制单个交易
+		/// <summary>
+		/// 绘制单个交易
+		/// </summary>
+		/// <param name="index"></param>
+		/// <param name="tradeItem"></param>
 		public void DrawHistory(int index, TradeHistory tradeItem) {
 			var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
 			if (!tradeItem.isSuccess)
@@ -208,7 +212,7 @@ namespace TradeBuddy.Window
 		/// 导出当前角色所有交易记录
 		/// </summary>
 		/// <param name="path">保存路径</param>
-		public void SaveHistory(string path) {
+		public void ExportHistory(string path) {
 			if (TradeBuddy.ClientState.LocalPlayer == null)
 				return;
 			PluginLog.Information($"[{TradeBuddy.Name}]保存交易历史: {path}");
@@ -238,7 +242,11 @@ namespace TradeBuddy.Window
 			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
 			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
+			// 删除历史记录文件
 			File.Delete(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
+			
+			// 清空缓存表
+			tradeHistoryList = new();
 		}
 
 		#region init
