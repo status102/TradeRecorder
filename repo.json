@@ -25,6 +25,6 @@
       "https://github.com/status102/TradeBuddy/raw/master/Image/History.png",
       "https://github.com/status102/TradeBuddy/raw/master/Image/Setting_.png"
     ],
-    "Changelog": ""
+    "Changelog": "- 0.0.4.0: 修复交易记录删除时，净金币显示重叠\n- 0.0.4.1: 修复清除交易记录后，悬浮窗缓存未清除"
   }
 ]
