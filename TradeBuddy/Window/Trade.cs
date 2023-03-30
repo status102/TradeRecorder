@@ -7,6 +7,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using ImGuiScene;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -377,16 +378,14 @@ namespace TradeBuddy
 
 					historyGiveGil += tradeGiveGil;
 					historyReceiveGil += tradeReceiveGil;
-					tradeGiveItem.ForEach(pair =>
-					{
+					tradeGiveItem.ForEach(pair => {
 						if (historyGiveMap.ContainsKey(pair.Key))
 							historyGiveMap[pair.Key] += pair.Value;
 						else
 							historyGiveMap[pair.Key] = pair.Value;
 						HistoryStack(ref historyGiveMap, pair.Key);
 					});
-					tradeReceiveItem.ForEach(pair =>
-					{
+					tradeReceiveItem.ForEach(pair => {
 						if (historyReceiveMap.ContainsKey(pair.Key))
 							historyReceiveMap[pair.Key] += pair.Value;
 						else
@@ -395,24 +394,37 @@ namespace TradeBuddy
 					});
 
 					if (Config.TradeConfirmAlert) {
+						// 计算当次交易
 						var giveList = tradeGiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
 						var receiveList = tradeReceiveItem.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
-						giveList.Insert(0, $"{tradeGiveGil:#,0}G");
-						receiveList.Insert(0, $"{tradeReceiveGil:#,0}G");
+						if (tradeGiveGil != 0)
+							giveList.Insert(0, $"{tradeGiveGil:#,0}G");
+						if (tradeReceiveGil != 0)
+							receiveList.Insert(0, $"{tradeReceiveGil:#,0}G");
 
-
+						// 累积当前交易对象的数据
 						var historyGiveList = historyGiveMap.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
 						var historyReceiveList = historyReceiveMap.Select(kp => $"{kp.Key}x{kp.Value:#,0}").ToList();
-						historyGiveList.Insert(0, $"{historyGiveGil:#,0}G");
-						historyReceiveList.Insert(0, $"{historyReceiveGil:#,0}G");
+						if (historyGiveGil != 0)
+							historyGiveList.Insert(0, $"{historyGiveGil:#,0}G");
+						if (historyReceiveGil != 0)
+							historyReceiveList.Insert(0, $"{historyReceiveGil:#,0}G");
 
-						var tradeStr = string.Format("[{0:}]交易成功: ==>{1:}\n<<==   {2:}\n==>>   {3:}",
-							TradeBuddy.Name, tradeTarget,
-							string.Join(", ", giveList), string.Join(", ", receiveList));
-						var historyStr = string.Format("\n连续交易累积：\n<<==   {0:}\n==>>   {1:}",
-							string.Join(", ", historyGiveList), string.Join(", ", historyReceiveList));
+						var output = new ArrayList { $"[{TradeBuddy.Name}]交易成功: ==> {tradeTarget}" };
+						if (giveList?.Count > 0)
+							output.Add($"<<==   {string.Join(", ", giveList)}");
+						if (receiveList?.Count > 0)
+							output.Add($"==>>   {string.Join(", ", receiveList)}");
 
-						TradeBuddy.ChatGui.Print(firstTrade ? tradeStr : (tradeStr + historyStr));
+						if (!firstTrade) {
+							output.Add("连续交易累积：");
+							if (historyGiveList?.Count > 0)
+								output.Add($"<<==   {string.Join(", ", historyGiveList)}");
+							if (historyReceiveList?.Count > 0)
+								output.Add($"==>>   {string.Join(", ", historyReceiveList)}");
+						}
+
+						TradeBuddy.ChatGui.Print(string.Join("\n", output));
 					}
 					firstTrade = false;
 				} else if (message.TextValue == Config.TradeCancelStr) {

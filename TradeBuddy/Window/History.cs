@@ -22,7 +22,7 @@ namespace TradeBuddy.Window
 		/// <summary>
 		/// 删除记录后重新去文件读取
 		/// </summary>
-		private bool _change = false;
+		private bool change = false;
 		private FileDialog? fileDialog;
 		private List<TradeHistory> tradeHistoryList = new();
 
@@ -30,8 +30,8 @@ namespace TradeBuddy.Window
 
 		public void Draw(ref bool historyVisible) {
 			if (!historyVisible) {
-				if (_change) {
-					_change = false;
+				if (change) {
+					change = false;
 					Task.Run(() => { EditHistory(); ReadHistory(); });
 				}
 				return;
@@ -138,7 +138,7 @@ namespace TradeBuddy.Window
 			}
 			// 删除记录
 			if (!tradeItem.visible)
-				_change = true;
+				change = true;
 
 		}
 
@@ -205,7 +205,7 @@ namespace TradeBuddy.Window
 						writer.WriteLine(tradeHistory.ToString());
 				writer.Flush();
 			}
-			_change = false;
+			change = false;
 		}
 
 		/// <summary>
