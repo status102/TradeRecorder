@@ -12,7 +12,7 @@ using TradeBuddy.Model;
 
 namespace TradeBuddy.Window
 {
-	public class Setting : IExternalWindow
+	public class Setting : IWindow
 	{
 		private readonly static Vector2 Window_Size = new(720, 640);
 		private readonly static Vector2 Image_Size = new(54, 54);
@@ -23,14 +23,20 @@ namespace TradeBuddy.Window
 		private int editIndex = -1, moreEditIndex = -1;
 		private string nameLabel = "", priceLabel = "";
 		private readonly List<PresetItem> itemList;
-		private TextureWrap? failureImage => TradeBuddy.GetIcon(784);
+		private bool settingVisible = false;
+
+		private TextureWrap? failureImage => PluginUI.GetIcon(784);
 		private readonly TradeBuddy TradeBuddy;
 		private Configuration Config => TradeBuddy.Configuration;
 		public Setting(TradeBuddy tradeBuddy) {
 			this.TradeBuddy = tradeBuddy;
 			itemList = tradeBuddy.Configuration.PresetItemList;
 		}
-		public void Draw(ref bool settingVisible) {
+
+		public void Show() {
+			settingVisible = true;
+		}
+		public void Draw() {
 			if (!settingVisible) {
 				firstDraw = true;
 				editIndex = -1;
@@ -260,7 +266,7 @@ namespace TradeBuddy.Window
 		private void DrawItemBlock(int index, PresetItem item) {
 			if (ImGui.BeginChild($"##ItemBlock-{index}", new(Item_width, Image_Size.Y + 16), true)) {
 				if (item.iconId > 0) {
-					TextureWrap? texture = TradeBuddy.GetIcon(item.iconId, item.isHQ);
+					TextureWrap? texture = PluginUI.GetIcon(item.iconId, item.isHQ);
 					if (texture != null)
 						ImGui.Image(texture.ImGuiHandle, Image_Size);
 					ImGui.SameLine();
@@ -342,9 +348,9 @@ namespace TradeBuddy.Window
 			if (!string.IsNullOrEmpty(name)) {
 				List<string>? tradeList;
 				if (onlyTradable) {
-					tradeList = TradeBuddy.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).Select(i => i.Name.RawString).ToList();
+					tradeList = Dalamud.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).Select(i => i.Name.RawString).ToList();
 				} else {
-					tradeList = TradeBuddy.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).Select(i => i.Name.RawString).ToList();
+					tradeList = Dalamud.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).Select(i => i.Name.RawString).ToList();
 				}
 				tradeList?.Where(i => i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));
 				tradeList?.Where(i => !i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));

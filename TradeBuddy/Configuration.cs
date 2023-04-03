@@ -30,6 +30,27 @@ namespace TradeBuddy
 		public bool TradeCancelAlert = true;
 
 		/// <summary>
+		/// 判定当前是否处于交易中
+		/// </summary>
+		public ushort OpcodeOfTradeForm = 594;// 需要维护
+		/// <summary>
+		/// 己方物品栏
+		/// </summary>
+		public ushort OpcodeOfInventoryModifyHandler = 762;
+		/// <summary>
+		/// 对方物品栏的物品变化
+		/// </summary>
+		public ushort OpcodeOfItemInfo = 921;
+		/// <summary>
+		/// 对方物品栏的水晶、金币
+		/// </summary>
+		public ushort OpcodeOfCurrencyCrystalInfo = 851;
+		/// <summary>
+		/// 交易成功后会触发该包，但是如果没有交易任何物品，则不会触发
+		/// </summary>
+		public ushort OpcodeOfUpdateInventorySlot = 0x0313;
+
+		/// <summary>
 		/// 雇员出售价格合适时，修改单价颜色
 		/// </summary>
 		public bool DrawRetainerSellListProper = true;

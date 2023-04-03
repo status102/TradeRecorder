@@ -6,8 +6,4 @@ namespace TradeBuddy.Window
 	{
 		public void Draw();
 	}
-	public interface IExternalWindow : IDisposable
-	{
-		public void Draw(ref bool show);
-	}
 }

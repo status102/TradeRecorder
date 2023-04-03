@@ -12,7 +12,7 @@ using TradeBuddy.Model;
 
 namespace TradeBuddy.Window
 {
-	public class History : IExternalWindow
+	public class History : IWindow
 	{
 		/// <summary>
 		/// 导出交易记录表的列名
@@ -24,12 +24,15 @@ namespace TradeBuddy.Window
 		/// </summary>
 		private bool change = false;
 		private FileDialog? fileDialog;
-		private List<TradeHistory> tradeHistoryList = new();
+		private List<TradeHistory> historyList = new();
+		private List<TradeHistory> showList = new();
 
 		private readonly TradeBuddy TradeBuddy;
+		private bool visible = false;
+		private string? target = null;
 
-		public void Draw(ref bool historyVisible) {
-			if (!historyVisible) {
+		public void Draw() {
+			if (!visible) {
 				if (change) {
 					change = false;
 					Task.Run(() => { EditHistory(); ReadHistory(); });
@@ -38,7 +41,7 @@ namespace TradeBuddy.Window
 			}
 
 			ImGui.SetNextWindowSize(new Vector2(480, 600), ImGuiCond.FirstUseEver);
-			if (ImGui.Begin("交易历史记录", ref historyVisible, ImGuiWindowFlags.NoScrollbar)) {
+			if (ImGui.Begin("交易历史记录", ref visible, ImGuiWindowFlags.NoScrollbar)) {
 				if (ImGui.Button("全部清除"))
 					ClearHistory();
 
@@ -51,8 +54,8 @@ namespace TradeBuddy.Window
 				}
 
 				if (ImGui.BeginChild("##历史清单")) {
-					for (int index = 0; index < tradeHistoryList.Count; index++) {
-						DrawHistory(index, tradeHistoryList[index]);
+					for (int index = 0; index < showList.Count; index++) {
+						DrawHistory(index, showList[index]);
 					}
 				}
 			}
@@ -73,12 +76,22 @@ namespace TradeBuddy.Window
 
 		}
 
+		public void ShowHistory(string? target = null) {
+			visible = true;
+			this.target = target;
+			if(target != null) {
+				showList = historyList;
+			} else {
+				showList = historyList.Where(i => i.targetName == target).ToList();
+			}
+		}
+
 		/// <summary>
 		/// 绘制单个交易
 		/// </summary>
 		/// <param name="index"></param>
 		/// <param name="tradeItem"></param>
-		public void DrawHistory(int index, TradeHistory tradeItem) {
+		private void DrawHistory(int index, TradeHistory tradeItem) {
 			var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
 			if (!tradeItem.isSuccess)
 				title += "  (取消)";
@@ -120,7 +133,7 @@ namespace TradeBuddy.Window
 						}
 
 					}
-					
+
 					// 如果本次交易有金币进出，则单独显示一行金币
 					if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0) {
 						ImGui.TableNextRow();
@@ -154,8 +167,7 @@ namespace TradeBuddy.Window
 			giveItemList.ForEach(i => giveList.Add(new(i.Key, i.Value)));
 			receiveItemList.ForEach(i => receiviList.Add(new(i.Key, i.Value)));
 
-			TradeHistory tradeHistory = new()
-			{
+			TradeHistory tradeHistory = new() {
 				isSuccess = isSuccess,
 				targetName = targetName,
 				giveGil = giveGil,
@@ -172,13 +184,13 @@ namespace TradeBuddy.Window
 			Task.Run(() => ReadHistory());
 		}
 
-		public void ReadHistory() {
+		private void ReadHistory() {
 			if (TradeBuddy.ClientState.LocalPlayer == null)
 				return;
 			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
 			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
-			tradeHistoryList = new();
+			historyList = new();
 
 			string path = Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
 
@@ -187,12 +199,12 @@ namespace TradeBuddy.Window
 				while ((tradeStr = reader.ReadLine() ?? "").Length > 0) {
 					TradeHistory? trade = TradeHistory.ParseFromString(tradeStr);
 					if (trade != null)
-						tradeHistoryList.Add(trade);
+						historyList.Add(trade);
 				}
 			}
 		}
 
-		public void EditHistory() {
+		private void EditHistory() {
 			if (TradeBuddy.ClientState.LocalPlayer == null)
 				return;
 			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
@@ -200,7 +212,7 @@ namespace TradeBuddy.Window
 
 			using (FileStream stream = File.Open(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create)) {
 				StreamWriter writer = new(stream);
-				foreach (TradeHistory tradeHistory in tradeHistoryList)
+				foreach (TradeHistory tradeHistory in historyList)
 					if (tradeHistory.visible)
 						writer.WriteLine(tradeHistory.ToString());
 				writer.Flush();
@@ -212,13 +224,22 @@ namespace TradeBuddy.Window
 		/// 导出当前角色所有交易记录
 		/// </summary>
 		/// <param name="path">保存路径</param>
-		public void ExportHistory(string path) {
+		private void ExportHistory(string path) {
 			if (TradeBuddy.ClientState.LocalPlayer == null)
 				return;
 			PluginLog.Information($"[{TradeBuddy.Name}]保存交易历史: {path}");
-			var saveList = tradeHistoryList.Where(i => i.visible)
-				.Select(i => new string[7] { i.time, i.isSuccess.ToString(), i.targetName, i.giveGil.ToString("#,0"), i.receiveGil.ToString("#,0"), string.Join(',', i.giveItemArray.Select(i => i.ToString())), string.Join(',', i.receiveItemArray.Select(i => i.ToString())) })
-				.ToList();
+			var exportList = historyList.Where(i => i.visible);
+
+			var saveList = historyList.Where(i => i.visible)
+				.Select(i => new string[7] {
+					i.time,
+					i.isSuccess.ToString(),
+					i.targetName,
+					i.giveGil.ToString("#,0"),
+					i.receiveGil.ToString("#,0"),
+					string.Join(',', i.giveItemArray.Select(i => i.ToExportString())),
+					string.Join(',', i.receiveItemArray.Select(i => i.ToExportString()))
+				}).ToList();
 			try {
 				using (StreamWriter writer = new(File.Open(path, FileMode.Create), Encoding.UTF8)) {
 					// 写入标题
@@ -236,7 +257,7 @@ namespace TradeBuddy.Window
 		/// <summary>
 		/// 删除当前角色所有交易记录
 		/// </summary>
-		public void ClearHistory() {
+		private void ClearHistory() {
 			if (TradeBuddy.ClientState.LocalPlayer == null)
 				return;
 			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
@@ -244,9 +265,9 @@ namespace TradeBuddy.Window
 
 			// 删除历史记录文件
 			File.Delete(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
-			
+
 			// 清空缓存表
-			tradeHistoryList = new();
+			historyList = new();
 		}
 
 		#region init
@@ -255,7 +276,7 @@ namespace TradeBuddy.Window
 			Task.Run(() => ReadHistory());
 		}
 		public void Dispose() {
-			tradeHistoryList.Clear();
+			historyList.Clear();
 		}
 		#endregion
 	}

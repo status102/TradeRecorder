@@ -10,6 +10,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Text;
 using TradeBuddy.Model;
@@ -27,7 +28,7 @@ namespace TradeBuddy
 		private readonly static float[] Col_Width = { 26, -1, 120, 150, 120 };
 		private readonly static Vector2 Image_Size = new(26, 26);
 		private const int Row_Height = 30;
-		private TextureWrap? Gil_Image => TradeBuddy.GetIcon(65002);
+		private TextureWrap? Gil_Image => PluginUI.GetIcon(65002);
 
 
 
@@ -229,9 +230,10 @@ namespace TradeBuddy
 
 					byte[] strBuffer = new byte[len - 24];
 					//前面抛弃14字节，后面抛弃10字节
-					Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
+					//Array.Copy(byteBuffer, 14, strBuffer, 0, len - 24);
 
-					var strName = Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
+					var strName = SeString.Parse(bytePtr, len).TextValue;
+					// Encoding.UTF8.GetString(strBuffer).Replace("", "HQ");
 					if (itemArray[i].name != strName) {
 						string iconIdStr = Convert.ToString(iconId);
 						//iconId以10开头的为HQ
@@ -239,7 +241,7 @@ namespace TradeBuddy
 							itemArray[i].iconId = uint.Parse(iconIdStr[2..]);
 						else
 							itemArray[i].iconId = (uint)iconId;
-						itemArray[i].icon = TradeBuddy.GetIcon(itemArray[i].iconId, itemArray[i].isHQ);
+						itemArray[i].icon = PluginUI.GetIcon(itemArray[i].iconId, itemArray[i].isHQ);
 
 						itemArray[i].name = strName;
 						itemArray[i].price = 0;
@@ -410,7 +412,8 @@ namespace TradeBuddy
 						if (historyReceiveGil != 0)
 							historyReceiveList.Insert(0, $"{historyReceiveGil:#,0}G");
 
-						var output = new ArrayList { $"[{TradeBuddy.Name}]交易成功: ==> {tradeTarget}" };
+						var output = new List<String>();
+						output.Add( $"[{TradeBuddy.Name}]交易成功: ==> {tradeTarget}" );
 						if (giveList?.Count > 0)
 							output.Add($"<<==   {string.Join(", ", giveList)}");
 						if (receiveList?.Count > 0)
@@ -444,7 +447,7 @@ namespace TradeBuddy
 		}
 
 		private void HistoryStack(ref Dictionary<string, int> map, string itemName) {
-			var itemByName = TradeBuddy.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
+			var itemByName = Dalamud.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
 			if (itemByName != null && itemByName.StackSize > 1 && map[itemName] >= itemByName.StackSize) {
 				if (map.ContainsKey($"{itemName}(组)")) {
 					map[$"{itemName}(组)"] += map[itemName] / (int)itemByName.StackSize;

@@ -158,7 +158,7 @@ namespace TradeBuddy.Model
 				isHQ = true;
 				itemName = itemName[0..^2];
 			}
-			var itemByName = TradeBuddy.Instance?.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
+			var itemByName = Dalamud.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
 			if (itemByName == null) {
 				itemId = 0;
 				iconId = 0;

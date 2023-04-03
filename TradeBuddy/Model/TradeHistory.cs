@@ -38,13 +38,13 @@ namespace TradeBuddy.Model
 				this.name = name;
 				this.count = count;
 				isHQ = name.EndsWith("HQ");
-				var itemByName = TradeBuddy.Instance?.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name.Replace("HQ", String.Empty));
+				var itemByName = Dalamud.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == name.Replace("HQ", String.Empty));
 				if (itemByName != null)
 					iconId = itemByName.Icon;
 				if (iconId > 0)
-					icon = TradeBuddy.Instance?.GetIcon(iconId, isHQ);
+					icon = PluginUI.GetIcon(iconId, isHQ);
 			}
-			public override string ToString() => $"{name}{COUNT_SPLIT}{count}";
+			public string ToExportString() => $"{name.Replace("", "HQ")}{COUNT_SPLIT}{count}";
 			public string ToShowString() => $"{name} {COUNT_SPLIT} {count}";
 		}
 		public static TradeHistory? ParseFromString(string str) {

@@ -47,7 +47,7 @@ namespace TradeBuddy.Model
 			minPrice = 0;
 			uint itemId = 0;
 			string worldName = Configuration.GetWorldName();
-			var itemByName = TradeBuddy.Instance?.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == (isHQ ? name[0..^2] : name));
+			var itemByName = Dalamud.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == (isHQ ? name[0..^2] : name));
 			if (itemByName == null) {
 				minPrice = -1;
 			} else {
