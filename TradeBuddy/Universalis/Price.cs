@@ -1,6 +1,8 @@
 ﻿using Dalamud.Logging;
+using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,12 +70,12 @@ namespace TradeRecorder.Universalis
 		private static string GetDcName(uint serverId) {
 			if (cnWorldDC.ContainsKey(serverId)) {
 				return cnWorldDC[serverId];
-			}else {
+			} else {
 				// TODO 支持国际服
 			}
 			return string.Empty;
 		}
-		public  class ItemPrice
+		public class ItemPrice
 		{
 			private uint itemId { get; init; }
 			/// <summary>
@@ -92,8 +94,18 @@ namespace TradeRecorder.Universalis
 			private string minPriceServer = string.Empty;
 
 			private string lastCheckDc = string.Empty;
-			private DateTime lastCheckTime = new DateTime(2000, 1, 1);
-			public ItemPrice(uint itemId) { this.itemId = itemId; }
+			private DateTime lastCheckTime = new(2000, 1, 1);
+			/// <summary>
+			/// 是否能在市场出售
+			/// </summary>
+			private readonly bool SelledInMarket;
+			public ItemPrice(uint itemId) {
+				this.itemId = itemId;
+				var item = DalamudInterface.DataManager.GetExcelSheet<Item>()?.FirstOrDefault(i => i.RowId == itemId);
+				if (item != null) {
+					SelledInMarket = item.ItemSearchCategory.Row != 0;
+				} else { SelledInMarket = false; }
+			}
 
 			/// <summary>
 			/// 获取所处大区的该物品最低价
@@ -101,6 +113,7 @@ namespace TradeRecorder.Universalis
 			/// <param name="serverId">所在服务器id</param>
 			/// <returns>(nq价格，hq价格，最低价服务器，价格上传时间)</returns>
 			public (int, int, string, long) GetMinPrice(uint serverId) {
+				if (!SelledInMarket) { return (0, 0, "无法在市场出售", 0); }
 				PluginLog.Verbose($"查询{itemId}的价格，上次查询时间：{lastCheckTime.ToString(format)}，当前时间：{DateTime.Now.ToString(format)}，时间间隔：{(DateTime.Now - lastCheckTime).Minutes}");
 				if ((DateTime.Now - lastCheckTime).Minutes > Check_Delay || !GetDcName(serverId).Equals(lastCheckDc)) {
 					Task.Run(() => Update(serverId));
