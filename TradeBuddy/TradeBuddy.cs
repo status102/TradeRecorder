@@ -1,22 +1,16 @@
 ﻿using Dalamud.Game.ClientState;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Game.Network;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using TradeBuddy.Universalis;
 
 namespace TradeBuddy
 {
-    public sealed class TradeBuddy : IDalamudPlugin
+	public sealed class TradeBuddy : IDalamudPlugin
 	{
 		public static string PluginName { get; private set; } = string.Empty;
 		public string Name => "Trade Buddy";
@@ -83,8 +77,8 @@ namespace TradeBuddy
 				this.PluginUi.Setting.Show();
 #if DEBUG
 			else if (arg == "test") {
-				
-				Chat.PrintError(DateTimeOffset.FromUnixTimeMilliseconds(1680670639000).ToLocalTime().ToString(Price.format));
+				// TODO 汉化包是否会影响语言？
+				// todo 是否能获取到国际服的大区
 			}
 #endif
 		}

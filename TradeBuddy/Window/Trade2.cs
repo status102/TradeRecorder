@@ -434,7 +434,7 @@ namespace TradeBuddy.Window
 			// TODO 数据包拆离
 			if (bytes[4] == 0x10 && bytes[5] == 0x03) {
 				var id = BitConverter.ToUInt32(bytes, 40);
-				var player = DalamudInterface.ObjectTable.Where(i => i.ObjectId == id).First() as PlayerCharacter;
+				var player = DalamudInterface.ObjectTable.FirstOrDefault(i => i.ObjectId == id) as PlayerCharacter;
 				if (player != null) {
 					PluginLog.Debug($"获得到ID：[{id:X}-{player.Name}]");
 					if (player.ObjectId != DalamudInterface.ClientState.LocalPlayer?.ObjectId) {

@@ -6,12 +6,14 @@ using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Numerics;
+using System.Threading.Tasks;
 using TradeBuddy.Model;
 
 namespace TradeBuddy.Window
 {
-    public class Setting : IWindow
+	public class Setting : IWindow
 	{
 		private readonly static Vector2 Window_Size = new(720, 640);
 		private readonly static Vector2 Image_Size = new(54, 54);
@@ -24,6 +26,9 @@ namespace TradeBuddy.Window
 		private readonly List<PresetItem> itemList;
 		private bool visible = false;
 		private bool changeOpcode = false;
+		/// <summary>
+		/// 正在从GitHub获取Opcode
+		/// </summary>
 		private bool gettingOpcodeFromOpcodeRepo = false;
 
 		private TextureWrap? FailureImage => PluginUI.GetIcon(784);
@@ -67,11 +72,12 @@ namespace TradeBuddy.Window
 							Config.OpcodeOfTradeTargetInfo = (ushort)targetInfo;
 							Config.Save();
 						}
-						if (gettingOpcodeFromOpcodeRepo) {
-							if (ImGui.Button("从Github上更新以下Opcode")) {
-								// TODO 从github的repo获取部分opcode
+						if (gettingOpcodeFromOpcodeRepo) { ImGui.TextUnformatted("正在从GitHub上更新Opcode"); } else {
+							if (ImGui.Button("从GitHub上更新以下Opcode")) {
+								gettingOpcodeFromOpcodeRepo = true;
+								Task.Run(UpdateOpcodeFromGitHub);
 							}
-						} else { ImGui.TextUnformatted("正在从Github上更新Opcode"); }
+						}
 						int inventoryModifyHandler = Config.OpcodeOfInventoryModifyHandler;
 						if (ImGui.InputInt("InventoryModifyHandler", ref inventoryModifyHandler)) {
 							Config.OpcodeOfInventoryModifyHandler = (ushort)inventoryModifyHandler;
@@ -325,5 +331,46 @@ namespace TradeBuddy.Window
 			return resultList;
 		}
 		public void Dispose() { }
+
+		private async void UpdateOpcodeFromGitHub() {
+			try {
+				var res = await Opcode.GetOpcodesFromGitHub();
+				if (res == null) {
+					Chat.PrintWarning("无法从GitHub获取Opcode，返回为空");
+				} else {
+					Opcodes? opcodeInfo;
+					if (DalamudInterface.ClientState.ClientLanguage == Dalamud.ClientLanguage.ChineseSimplified) {
+						opcodeInfo = res.FirstOrDefault(i => i.Region.Equals("CN"));
+					} else {
+						opcodeInfo = res.FirstOrDefault(i => i.Region.Equals("Global"));
+					}
+					if (opcodeInfo == null) {
+						Chat.PrintError("无法找到对应服务器的Opcode列表");
+					} else {
+						var client = opcodeInfo.Lists.ClientZoneIpcType;
+						var server = opcodeInfo.Lists.ServerZoneIpcType;
+						var inventoryModifyHandler = client.FirstOrDefault(i => i.Name.Equals("InventoryModifyHandler"))?.Opcode;
+						if (inventoryModifyHandler != null) { Config.OpcodeOfInventoryModifyHandler = (ushort)inventoryModifyHandler; }
+
+						var itemInfo = client.FirstOrDefault(i => i.Name.Equals("ItemInfo"))?.Opcode;
+						if (itemInfo != null) { Config.OpcodeOfItemInfo = (ushort)itemInfo; }
+
+						var currencyCrystalInfo = client.FirstOrDefault(i => i.Name.Equals("CurrencyCrystalInfo"))?.Opcode;
+						if (currencyCrystalInfo != null) { Config.OpcodeOfCurrencyCrystalInfo = (ushort)currencyCrystalInfo; }
+
+						var updateInventorySlot = client.FirstOrDefault(i => i.Name.Equals("UpdateInventorySlot"))?.Opcode;
+						if (updateInventorySlot != null) { Config.OpcodeOfUpdateInventorySlot = (ushort)updateInventorySlot; }
+
+						Config.Save();
+						Chat.PrintLog($"已将部分Opcode更新至{opcodeInfo.Region}服务器<{opcodeInfo.Version}版本>");
+					}
+				}
+			} catch (HttpRequestException e) {
+				Chat.PrintWarning("无法从GitHub获取Opcode，请检查是否可以访问到GitHub");
+				PluginLog.Error(e.ToString());
+			}
+			gettingOpcodeFromOpcodeRepo = false;
+		}
+
 	}
 }
