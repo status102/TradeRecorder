@@ -8,7 +8,7 @@ using Dalamud.Plugin;
 using System;
 using System.Threading.Tasks;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
 	public sealed class TradeBuddy : IDalamudPlugin
 	{

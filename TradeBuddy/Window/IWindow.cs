@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TradeBuddy.Window
+namespace TradeRecorder.Window
 {
 	public interface IWindow : IDisposable
 	{

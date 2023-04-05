@@ -8,7 +8,7 @@ using Lumina.Excel.GeneratedSheets;
 using System.Linq;
 using System;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
     public class Utils
     {

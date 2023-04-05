@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TradeBuddy.Universalis.API
+namespace TradeRecorder.Universalis.API
 {
 	/// <summary>
 	/// Universalis API Client.

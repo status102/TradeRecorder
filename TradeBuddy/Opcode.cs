@@ -5,9 +5,9 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using TradeBuddy.Model;
+using TradeRecorder.Model;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
 	public class Opcode
 	{

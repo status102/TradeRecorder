@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TradeBuddy.Model
+namespace TradeRecorder.Model
 {
 	[StructLayout(LayoutKind.Sequential, Size = 0x26)]
 	public struct InventoryModifyHandler

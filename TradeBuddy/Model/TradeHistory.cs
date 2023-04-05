@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TradeBuddy.Model
+namespace TradeRecorder.Model
 {
     public class TradeHistory
 	{

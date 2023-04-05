@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TradeBuddy.Model
+namespace TradeRecorder.Model
 {
 
     public class PresetItem

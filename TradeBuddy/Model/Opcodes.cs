@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using static TradeBuddy.Universalis.CurrentlyShownView;
+using static TradeRecorder.Universalis.CurrentlyShownView;
 
-namespace TradeBuddy.Model
+namespace TradeRecorder.Model
 {
 	public class Opcodes
 	{

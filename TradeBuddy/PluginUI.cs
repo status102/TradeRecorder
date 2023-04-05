@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using TradeBuddy.Window;
+using TradeRecorder.Window;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
     public unsafe class PluginUI : IDisposable
 	{
@@ -24,7 +24,7 @@ namespace TradeBuddy
 		//public Trade Trade { get; init; }
 		public Trade2 Trade2 { get; init; }
 		public Setting Setting { get; init; }
-		public TradeBuddy TradeBuddy { get; init; }
+		public TradeRecorder TradeBuddy { get; init; }
 
 		//public RetainerSellList RetainerSellList { get; init; }
 		//public ItemSearchResult ItemSearchResult { get; init; }
@@ -38,7 +38,7 @@ namespace TradeBuddy
 
 		public StreamWriter? networkMessageWriter;
 
-		public unsafe PluginUI(TradeBuddy TradeBuddy, Configuration configuration) {
+		public unsafe PluginUI(TradeRecorder TradeBuddy, Configuration configuration) {
 			this.configuration = configuration;
 			this.TradeBuddy = TradeBuddy;
 			//Trade = new(TradeBuddy);

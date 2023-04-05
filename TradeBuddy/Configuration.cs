@@ -2,9 +2,9 @@
 using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
-using TradeBuddy.Model;
+using TradeRecorder.Model;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
 	[Serializable]
 	public class Configuration : IPluginConfiguration
@@ -64,7 +64,7 @@ namespace TradeBuddy
 		[NonSerialized]
 		private DalamudPluginInterface? pluginInterface;
 
-		public void Initialize(TradeBuddy TradeBuddy, DalamudPluginInterface pluginInterface) {
+		public void Initialize(TradeRecorder TradeBuddy, DalamudPluginInterface pluginInterface) {
 			this.pluginInterface = pluginInterface;
 
 			RefreshKeySet();

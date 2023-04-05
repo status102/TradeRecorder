@@ -6,7 +6,7 @@ using Dalamud.Game.Gui;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 
-namespace TradeBuddy
+namespace TradeRecorder
 {
     public class DalamudInterface
     {

@@ -9,16 +9,15 @@ using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using ImGuiScene;
-using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using TradeBuddy.Model;
-using TradeBuddy.Universalis;
+using TradeRecorder.Model;
+using TradeRecorder.Universalis;
 
-namespace TradeBuddy.Window
+namespace TradeRecorder.Window
 {
 	public class Trade2
 	{
@@ -52,7 +51,7 @@ namespace TradeBuddy.Window
 		/// 交易物品记录，0自己，1对面；[,0]id，[,1]数量，[,2]是否为HQ
 		/// </summary>
 		private TradeItem[][] tradeItemList = new TradeItem[2][];
-		
+
 		/// <summary>
 		/// 交易金币记录，0自己，1对面
 		/// </summary>
@@ -148,7 +147,7 @@ namespace TradeBuddy.Window
 				DrawTradeTable(tradeItemList[0], tradeGil[0]);
 				ImGui.Spacing();
 
-				ImGui.TextUnformatted(target.Item2 + SeIconChar.CrossWorld.ToIconString() + target.Item3 + " -->");
+				ImGui.TextUnformatted($"{target.Item2} @ {target.Item3} -->");
 				DrawTradeTable(tradeItemList[1], tradeGil[1]);
 				ImGui.End();
 			}
@@ -174,16 +173,14 @@ namespace TradeBuddy.Window
 					ImGui.TableNextRow(ImGuiTableRowFlags.None, ROW_HEIGHT);
 					ImGui.TableNextColumn();
 
-					if (items[i].Id == 0) {
-						continue;
-					}
+					if (items[i].Id == 0) { continue; }
 					var icon = PluginUI.GetIcon(items[i].IconId ?? 0, items[i].Quality);
 					if (icon != null) { ImGui.Image(icon.ImGuiHandle, IMAGE_SIZE); }
 
 					ImGui.TableNextColumn();
 					ImGui.TextUnformatted(items[i].Name);
 
-					// TODO 右键
+					// TODO 右键显示预设
 					if (ImGui.IsItemHovered()) {
 						try {
 							var itemPresetStr = Config.PresetItemList[Config.PresetItemDictionary[items[i].Name ?? ""]].GetPriceStr();
@@ -196,7 +193,7 @@ namespace TradeBuddy.Window
 					ImGui.TextUnformatted(Convert.ToString(items[i].Count));
 
 					ImGui.TableNextColumn();
-					// TODO 绘制交易栏的预期金额
+					// TODO 绘制交易窗口的预设金额
 					/*
 					if (itemArray[i].priceList.Count == 0) {
 						ImGui.TextColored(color[itemArray[i].priceType], "---");
@@ -248,8 +245,8 @@ namespace TradeBuddy.Window
 
 				float sum = 0;
 				uint min = gil;
-				foreach (var item in items) { 
-					if (item.MinPrice > 0) { min += (uint)item.MinPrice * item.Count; } 
+				foreach (var item in items) {
+					if (item.MinPrice > 0) { min += (uint)item.MinPrice * item.Count; }
 				}
 
 				ImGui.TableNextColumn();

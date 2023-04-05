@@ -9,9 +9,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Numerics;
 using System.Threading.Tasks;
-using TradeBuddy.Model;
+using TradeRecorder.Model;
 
-namespace TradeBuddy.Window
+namespace TradeRecorder.Window
 {
 	public class Setting : IWindow
 	{
@@ -309,14 +309,14 @@ namespace TradeBuddy.Window
 		/// <summary>
 		/// 搜索含有关键词的道具名称
 		/// </summary>
-		private List<string> SearchName(string name, bool onlyTradable = false) {
+		private static List<string> SearchName(string name, bool onlyTradable = true) {
 			var resultList = new List<string>();
 			if (!string.IsNullOrEmpty(name)) {
 				List<string>? tradeList;
 				if (onlyTradable) {
-					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).Select(i => i.Name.RawString).ToList();
+					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).OrderByDescending(i => i.RowId).Select(i => i.Name.RawString).ToList();
 				} else {
-					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).Select(i => i.Name.RawString).ToList();
+					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).OrderByDescending(i => i.RowId).Select(i => i.Name.RawString).ToList();
 				}
 				tradeList?.Where(i => i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));
 				tradeList?.Where(i => !i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));

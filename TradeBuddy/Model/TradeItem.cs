@@ -1,9 +1,9 @@
 ﻿using Dalamud.Logging;
 using Lumina.Excel.GeneratedSheets;
 using System.Linq;
-using TradeBuddy.Universalis;
+using TradeRecorder.Universalis;
 
-namespace TradeBuddy.Model
+namespace TradeRecorder.Model
 {
 	public class TradeItem
 	{

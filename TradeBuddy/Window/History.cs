@@ -8,9 +8,9 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using TradeBuddy.Model;
+using TradeRecorder.Model;
 
-namespace TradeBuddy.Window
+namespace TradeRecorder.Window
 {
 	public class History : IWindow
 	{
@@ -61,6 +61,7 @@ namespace TradeBuddy.Window
 						DrawHistory(index, showList[index]);
 					}
 				}
+				// todo 增加一个角色筛选
 			}
 
 			// 判断文件保存框是否存在
