@@ -1,5 +1,4 @@
 ﻿using Dalamud.Interface;
-using Dalamud.Interface.Components;
 using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
@@ -12,7 +11,7 @@ using TradeBuddy.Model;
 
 namespace TradeBuddy.Window
 {
-	public class Setting : IWindow
+    public class Setting : IWindow
 	{
 		private readonly static Vector2 Window_Size = new(720, 640);
 		private readonly static Vector2 Image_Size = new(54, 54);
@@ -23,9 +22,11 @@ namespace TradeBuddy.Window
 		private int editIndex = -1, moreEditIndex = -1;
 		private string nameLabel = "", priceLabel = "";
 		private readonly List<PresetItem> itemList;
-		private bool settingVisible = false;
+		private bool visible = false;
+		private bool changeOpcode = false;
+		private bool gettingOpcodeFromOpcodeRepo = false;
 
-		private TextureWrap? failureImage => PluginUI.GetIcon(784);
+		private TextureWrap? FailureImage => PluginUI.GetIcon(784);
 		private readonly TradeBuddy TradeBuddy;
 		private Configuration Config => TradeBuddy.Configuration;
 		public Setting(TradeBuddy tradeBuddy) {
@@ -34,10 +35,10 @@ namespace TradeBuddy.Window
 		}
 
 		public void Show() {
-			settingVisible = true;
+			visible = true;
 		}
 		public void Draw() {
-			if (!settingVisible) {
+			if (!visible) {
 				firstDraw = true;
 				editIndex = -1;
 				return;
@@ -49,79 +50,48 @@ namespace TradeBuddy.Window
 				firstDraw = false;
 			}
 			ImGui.SetNextWindowSize(Window_Size, ImGuiCond.FirstUseEver);
-			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref settingVisible)) {
+			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref visible)) {
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen)) {
 					ImGui.Indent();
-					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade))
-						Config.Save();
+					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade)) { Config.Save(); }
 
-					ImGui.SetNextItemWidth(300);
-					if (ImGui.InputText("##确认交易字符串", ref Config.TradeConfirmStr, 256))
-						Config.Save();
-
-					ImGui.SameLine();
-					if (ImGui.Checkbox("确认交易后提示", ref Config.TradeConfirmAlert))
-						Config.Save();
-
-					ImGui.SetNextItemWidth(300);
-					if (ImGui.InputText("##取消交易字符串", ref Config.TradeCancelStr, 256))
-						Config.Save();
-
-					ImGui.SameLine();
-					if (ImGui.Checkbox("取消交易后提示", ref Config.TradeCancelAlert))
-						Config.Save();
-
-					#region 
-					if (ImGui.Checkbox("##绘制不低于预期", ref Config.DrawRetainerSellListProper))
-						Config.Save();
-
-					ImGui.SameLine();
-					ImGui.SetNextItemWidth(300);
-					var properColor = Config.SellList.ProperColor;
-					if (ImGui.ColorEdit3("雇员出售价格不低于预期", ref properColor)) {
-						Config.SellList.ProperColor = properColor;
-						Config.Save();
+					if (ImGui.Checkbox("显示Opcode", ref changeOpcode)) {
+						int tradeForm = Config.OpcodeOfTradeForm;
+						if (ImGui.InputInt("交易窗口触发", ref tradeForm)) {
+							Config.OpcodeOfTradeForm = (ushort)tradeForm;
+							Config.Save();
+						}
+						int targetInfo = Config.OpcodeOfTradeTargetInfo;
+						if (ImGui.InputInt("交易ID获取", ref targetInfo)) {
+							Config.OpcodeOfTradeTargetInfo = (ushort)targetInfo;
+							Config.Save();
+						}
+						if (gettingOpcodeFromOpcodeRepo) {
+							if (ImGui.Button("从Github上更新以下Opcode")) {
+								// TODO 从github的repo获取部分opcode
+							}
+						} else { ImGui.TextUnformatted("正在从Github上更新Opcode"); }
+						int inventoryModifyHandler = Config.OpcodeOfInventoryModifyHandler;
+						if (ImGui.InputInt("InventoryModifyHandler", ref inventoryModifyHandler)) {
+							Config.OpcodeOfInventoryModifyHandler = (ushort)inventoryModifyHandler;
+							Config.Save();
+						}
+						int itemInfo = Config.OpcodeOfItemInfo;
+						if (ImGui.InputInt("ItemInfo", ref itemInfo)) {
+							Config.OpcodeOfItemInfo = (ushort)itemInfo;
+							Config.Save();
+						}
+						int currencyCrystalInfo = Config.OpcodeOfCurrencyCrystalInfo;
+						if (ImGui.InputInt("CurrencyCrystalInfo", ref currencyCrystalInfo)) {
+							Config.OpcodeOfCurrencyCrystalInfo = (ushort)currencyCrystalInfo;
+							Config.Save();
+						}
+						int updateInventorySlot = Config.OpcodeOfUpdateInventorySlot;
+						if (ImGui.InputInt("UpdateInventorySlot", ref updateInventorySlot)) {
+							Config.OpcodeOfUpdateInventorySlot = (ushort)updateInventorySlot;
+							Config.Save();
+						}
 					}
-					// 重置为默认颜色
-					ImGui.SameLine();
-					ImGui.PushID(0);
-					ImGui.PushFont(UiBuilder.IconFont);
-					if (ImGui.Button(FontAwesomeIcon.Reply.ToIconString())) {
-						Array.Copy(Configuration.RetainerSellList.Proper_Color_Default, Config.SellList.ProperColorArray, 3);
-						Config.Save();
-					}
-					ImGui.PopFont();
-					ImGui.PopID();
-
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("重置");
-					#endregion
-
-					#region
-					if (ImGui.Checkbox("##绘制低于预期", ref Config.DrawRetainerSellListAlert))
-						Config.Save();
-					ImGui.SameLine();
-
-					var alertColor = Config.SellList.AlertColor;
-					ImGui.SetNextItemWidth(300);
-					if (ImGui.ColorEdit3("雇员出售价格低于预期", ref alertColor)) {
-						Config.SellList.AlertColor = alertColor;
-						Config.Save();
-					}
-					// 重置为默认颜色
-					ImGui.SameLine();
-					ImGui.PushID(1);
-					ImGui.PushFont(UiBuilder.IconFont);
-					if (ImGui.Button(FontAwesomeIcon.Reply.ToIconString())) {
-						Array.Copy(Configuration.RetainerSellList.Alert_Color_Default, Config.SellList.AlertColorArray, 3);
-						Config.Save();
-					}
-					ImGui.PopFont();
-					ImGui.PopID();
-
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("重置");
-					#endregion
 
 					ImGui.Unindent();
 				}
@@ -188,8 +158,7 @@ namespace TradeBuddy.Window
 						}
 						Config.Save();
 					}
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("从剪贴板导入");
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("从剪贴板导入"); }
 
 					ImGui.SameLine();
 					ImGui.TextDisabled("(?)");
@@ -201,13 +170,11 @@ namespace TradeBuddy.Window
 						bool save = false;
 						//保存设置
 						ImGui.SameLine();
-						if (Utils.DrawIconButton(FontAwesomeIcon.Check,-1) && !string.IsNullOrEmpty(nameLabel))
-							save = true;
+						if (Utils.DrawIconButton(FontAwesomeIcon.Check, -1) && !string.IsNullOrEmpty(nameLabel)) { save = true; }
 
 						//取消编辑
 						ImGui.SameLine();
-						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1))
-							editIndex = -1;
+						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1)) { editIndex = -1; }
 
 						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
@@ -223,7 +190,7 @@ namespace TradeBuddy.Window
 							nameLabel = items[current_index];
 
 						if (save && Config.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != Config.PresetItemDictionary[nameLabel]) {
-							TradeBuddy.ChatGui.PrintError("物品与已有设定重复，无法添加");
+							Chat.PrintError("物品与已有设定重复，无法添加");
 							save = false;
 						} else if (save) {
 							if (nameLabel == "") {
@@ -245,11 +212,9 @@ namespace TradeBuddy.Window
 					#endregion
 					int rowIndex = 0;
 					for (int i = 0; i < itemList.Count; i++) {
-						if (ImGui.GetColumnWidth() < (Item_width + Item_Interval) * (rowIndex + 1) + 8)
-							rowIndex = 0;
+						if (ImGui.GetColumnWidth() < (Item_width + Item_Interval) * (rowIndex + 1) + 8) { rowIndex = 0; }
 
-						if (rowIndex > 0)
-							ImGui.SameLine(rowIndex * (Item_width + Item_Interval) + 8);
+						if (rowIndex > 0) { ImGui.SameLine(rowIndex * (Item_width + Item_Interval) + 8); }
 						rowIndex++;
 
 						DrawItemBlock(i, itemList[i]);
@@ -266,13 +231,13 @@ namespace TradeBuddy.Window
 		private void DrawItemBlock(int index, PresetItem item) {
 			if (ImGui.BeginChild($"##ItemBlock-{index}", new(Item_width, Image_Size.Y + 16), true)) {
 				if (item.iconId > 0) {
-					TextureWrap? texture = PluginUI.GetIcon(item.iconId, item.isHQ);
+					TextureWrap? texture = PluginUI.GetIcon(item.iconId, item.quality);
 					if (texture != null)
 						ImGui.Image(texture.ImGuiHandle, Image_Size);
 					ImGui.SameLine();
 				} else {
-					if (failureImage != null)
-						ImGui.Image(failureImage.ImGuiHandle, Image_Size);
+					if (FailureImage != null)
+						ImGui.Image(FailureImage.ImGuiHandle, Image_Size);
 					ImGui.SameLine();
 				}
 
@@ -313,7 +278,7 @@ namespace TradeBuddy.Window
 				}
 			}
 			if (ImGui.BeginPopup($"MoreEdit-{index}", ImGuiWindowFlags.NoMove)) {
-				
+
 				// 编辑当前物品
 				if (Utils.DrawIconButton(FontAwesomeIcon.Edit, -moreEditIndex - 1)) {
 					editIndex = moreEditIndex;
@@ -348,9 +313,9 @@ namespace TradeBuddy.Window
 			if (!string.IsNullOrEmpty(name)) {
 				List<string>? tradeList;
 				if (onlyTradable) {
-					tradeList = Dalamud.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).Select(i => i.Name.RawString).ToList();
+					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name) && !i.IsUntradable).Select(i => i.Name.RawString).ToList();
 				} else {
-					tradeList = Dalamud.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).Select(i => i.Name.RawString).ToList();
+					tradeList = DalamudInterface.DataManager.GetExcelSheet<Item>()?.Where(i => i.Name.ToString().Contains(name)).Select(i => i.Name.RawString).ToList();
 				}
 				tradeList?.Where(i => i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));
 				tradeList?.Where(i => !i.StartsWith(name)).ToList().ForEach(i => resultList.Add(i));

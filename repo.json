@@ -6,6 +6,7 @@
     "Description": "根据预期价格计算预期交易金额，并记录交易历史",
     "InternalName": "TradeBuddy",
     "AssemblyVersion": "0.0.4.1",
+    "TestingAssemblyVersion":"0.1.0.0",
     "RepoUrl": "https://github.com/status102/TradeBuddy",
     "ApplicableVersion": "any",
     "IsHide": false,
@@ -15,7 +16,7 @@
     "LastUpdate": 1658232356,
     "DownloadLinkInstall": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
     "DownloadLinkUpdate": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
-    "DownloadLinkTesting": "https://raw.githubusercontent.com/status102/TradeBuddy/master/latest.zip",
+    "DownloadLinkTesting": "https://raw.githubusercontent.com/status102/TradeBuddy/dev/latest.zip",
     "Tags": [
       "Trade",
       "MarketBoard",
@@ -25,6 +26,6 @@
       "https://github.com/status102/TradeBuddy/raw/master/Image/History.png",
       "https://github.com/status102/TradeBuddy/raw/master/Image/Setting_.png"
     ],
-    "Changelog": "- 0.0.4.0: 修复交易记录删除时，净金币显示重叠\n- 0.0.4.1: 修复清除交易记录后，悬浮窗缓存未清除"
+    "Changelog": "- 0.1.0.0 重构交易窗口逻辑，减少资源消耗。\n交易记录增加记录服务器和按交易对象筛选，不支持旧交易记录筛选服务器。\n不再支持雇员、市场布告板相关功能。\n最低价格查询支持国际服"
   }
 ]

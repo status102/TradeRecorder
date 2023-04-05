@@ -41,9 +41,12 @@ namespace TradeBuddy.Window
 			}
 
 			ImGui.SetNextWindowSize(new Vector2(480, 600), ImGuiCond.FirstUseEver);
-			if (ImGui.Begin("交易历史记录", ref visible, ImGuiWindowFlags.NoScrollbar)) {
-				if (ImGui.Button("全部清除"))
-					ClearHistory();
+			var title = "交易历史记录";
+			if (target != null) {
+				title += "-" + target;
+			}
+			if (ImGui.Begin(title, ref visible, ImGuiWindowFlags.NoScrollbar)) {
+				if (ImGui.Button("全部清除")) { ClearHistory(); }
 
 				ImGui.SameLine();
 				ImGui.Spacing();
@@ -76,13 +79,14 @@ namespace TradeBuddy.Window
 
 		}
 
-		public void ShowHistory(string? target = null) {
+		public void ShowHistory((uint, string, string)? target = null) {
 			visible = true;
-			this.target = target;
-			if(target != null) {
-				showList = historyList;
+			if (target != null) {
+				this.target = target?.Item2 + "@" + target?.Item3;
+				showList = historyList.Where(i => i.Target == this.target).ToList();
 			} else {
-				showList = historyList.Where(i => i.targetName == target).ToList();
+				this.target = null;
+				showList = historyList;
 			}
 		}
 
@@ -92,14 +96,13 @@ namespace TradeBuddy.Window
 		/// <param name="index"></param>
 		/// <param name="tradeItem"></param>
 		private void DrawHistory(int index, TradeHistory tradeItem) {
-			var title = $"{index + 1}:  {tradeItem.time}  <{tradeItem.targetName}>";
-			if (!tradeItem.isSuccess)
-				title += "  (取消)";
+			var title = $"{index + 1}:  {tradeItem.Time}  <{tradeItem.Target}>";
+			if (!tradeItem.Status) { title += "  (取消)"; }
 			var expansion = ImGui.CollapsingHeader(title.ToString(), ref tradeItem.visible);
 			// 如果处于显示状态，则绘制本次交易的净金币进出
 			if (tradeItem.visible) {
 				ImGui.SameLine(ImGui.GetColumnWidth() - 130);
-				var get = tradeItem.receiveGil - tradeItem.giveGil;
+				var get = (int)tradeItem.ReceiveGil - (int)tradeItem.GiveGil;
 				ImGui.TextUnformatted($"{(get > 0 ? "+" : "")}{get:#,#}");
 			}
 			if (expansion) {
@@ -114,7 +117,7 @@ namespace TradeBuddy.Window
 						ImGui.TableNextColumn();
 
 						if (tradeItem.giveItemArray.Length > i) {
-							var icon = tradeItem.giveItemArray[i].icon;
+							var icon = tradeItem.giveItemArray[i].Icon;
 							if (icon != null) {
 								ImGui.Image(icon.ImGuiHandle, Img_Size);
 								ImGui.SameLine();
@@ -124,7 +127,7 @@ namespace TradeBuddy.Window
 
 						ImGui.TableNextColumn();
 						if (tradeItem.receiveItemArray.Length > i) {
-							var icon = tradeItem.receiveItemArray[i].icon;
+							var icon = tradeItem.receiveItemArray[i].Icon;
 							if (icon != null) {
 								ImGui.Image(icon.ImGuiHandle, Img_Size);
 								ImGui.SameLine();
@@ -135,41 +138,38 @@ namespace TradeBuddy.Window
 					}
 
 					// 如果本次交易有金币进出，则单独显示一行金币
-					if (tradeItem.giveGil > 0 || tradeItem.receiveGil > 0) {
+					if (tradeItem.GiveGil > 0 || tradeItem.ReceiveGil > 0) {
 						ImGui.TableNextRow();
 						ImGui.TableNextColumn();
-						if (tradeItem.giveGil > 0)
-							ImGui.TextUnformatted($"金币: {tradeItem.giveGil:#,0}");
+						if (tradeItem.GiveGil > 0)
+							ImGui.TextUnformatted($"金币: {tradeItem.GiveGil:#,0}");
 
 						ImGui.TableNextColumn();
-						if (tradeItem.receiveGil > 0)
-							ImGui.TextUnformatted($"金币: {tradeItem.receiveGil:#,0}");
+						if (tradeItem.ReceiveGil > 0)
+							ImGui.TextUnformatted($"金币: {tradeItem.ReceiveGil:#,0}");
 					}
 
 					ImGui.EndTable();
 				}
 			}
 			// 删除记录
-			if (!tradeItem.visible)
-				change = true;
-
+			if (!tradeItem.visible) { change = true; }
 		}
-
+		/*
 		public void AddHistory(string targetName, int giveGil, int receiveGil, List<KeyValuePair<string, int>> giveItemArray, List<KeyValuePair<string, int>> receiveItemArray) => AddHistory(true, targetName, giveGil, receiveGil, giveItemArray, receiveItemArray);
 
 		public void AddHistory(bool isSuccess, string targetName, int giveGil, int receiveGil, List<KeyValuePair<string, int>> giveItemList, List<KeyValuePair<string, int>> receiveItemList) {
-			if (TradeBuddy.ClientState.LocalPlayer == null)
-				return;
-			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (TradeBuddy.ClientState.LocalPlayer == null) { return; }
+			var playerName = DalamudInterface.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudInterface.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			List<TradeHistory.HistoryItem> giveList = new(), receiviList = new();
 			giveItemList.ForEach(i => giveList.Add(new(i.Key, i.Value)));
 			receiveItemList.ForEach(i => receiviList.Add(new(i.Key, i.Value)));
 
 			TradeHistory tradeHistory = new() {
-				isSuccess = isSuccess,
-				targetName = targetName,
+				Status = isSuccess,
+				Target = targetName,
 				giveGil = giveGil,
 				receiveGil = receiveGil,
 				giveItemArray = giveList.ToArray(),
@@ -183,10 +183,36 @@ namespace TradeBuddy.Window
 			}
 			Task.Run(() => ReadHistory());
 		}
+		*/
+		public void AddHistory(bool status, string target, uint[] gil, TradeItem[][] items) {
+			if (DalamudInterface.ClientState.LocalPlayer == null) {
+				Chat.PrintError("历史记录追加失败，Player为空");
+				return;
+			}
+			var playerName = DalamudInterface.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudInterface.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+
+			var giveList = items[0].Select(i => new TradeHistory.HistoryItem(i.IconId ?? 0, i.Name ?? "<Unknown>", i.Count, i.Quality)).ToArray();
+			var receiviList = items[1].Select(i => new TradeHistory.HistoryItem(i.IconId ?? 0, i.Name ?? "<Unknown>", i.Count, i.Quality)).ToArray();
+
+			TradeHistory tradeHistory = new() {
+				Status = status,
+				Target = target,
+				GiveGil = gil[0],
+				ReceiveGil = gil[1],
+				giveItemArray = giveList,
+				receiveItemArray = receiviList
+			};
+			using (FileStream stream = File.Open(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append)) {
+				StreamWriter writer = new(stream);
+				writer.WriteLine(tradeHistory.ToString());
+				writer.Flush();
+			}
+			Task.Run(() => ReadHistory());
+		}
 
 		private void ReadHistory() {
-			if (TradeBuddy.ClientState.LocalPlayer == null)
-				return;
+			if (TradeBuddy.ClientState.LocalPlayer == null) { return; }
 			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
 			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
@@ -202,6 +228,9 @@ namespace TradeBuddy.Window
 						historyList.Add(trade);
 				}
 			}
+			if(target != null) {
+				showList = historyList.Where(i => i.Target == this.target).ToList();
+			}
 		}
 
 		private void EditHistory() {
@@ -212,9 +241,11 @@ namespace TradeBuddy.Window
 
 			using (FileStream stream = File.Open(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create)) {
 				StreamWriter writer = new(stream);
-				foreach (TradeHistory tradeHistory in historyList)
-					if (tradeHistory.visible)
+				foreach (TradeHistory tradeHistory in historyList) {
+					if (tradeHistory.visible) {
 						writer.WriteLine(tradeHistory.ToString());
+					}
+				}
 				writer.Flush();
 			}
 			change = false;
@@ -232,13 +263,13 @@ namespace TradeBuddy.Window
 
 			var saveList = historyList.Where(i => i.visible)
 				.Select(i => new string[7] {
-					i.time,
-					i.isSuccess.ToString(),
-					i.targetName,
-					i.giveGil.ToString("#,0"),
-					i.receiveGil.ToString("#,0"),
-					string.Join(',', i.giveItemArray.Select(i => i.ToExportString())),
-					string.Join(',', i.receiveItemArray.Select(i => i.ToExportString()))
+					i.Time,
+					i.Status.ToString(),
+					i.Target,
+					i.GiveGil.ToString("#,0"),
+					i.ReceiveGil.ToString("#,0"),
+					string.Join(',', i.giveItemArray.Select(i => i.ToString())),
+					string.Join(',', i.receiveItemArray.Select(i => i.ToString()))
 				}).ToList();
 			try {
 				using (StreamWriter writer = new(File.Open(path, FileMode.Create), Encoding.UTF8)) {

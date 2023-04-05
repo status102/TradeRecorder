@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 namespace TradeBuddy.Model
 {
 
-	public class PresetItem
+    public class PresetItem
 	{
 
 		[Newtonsoft.Json.JsonIgnore]
 		public uint iconId { get; private set; } = 0; // 0未找到
 
 		[Newtonsoft.Json.JsonIgnore]
-		public bool isHQ { get; private set; } = false;
+		public bool quality { get; private set; } = false;
 
 		[Newtonsoft.Json.JsonIgnore]
 		public uint itemId { get; private set; } = 0;
@@ -112,6 +112,8 @@ namespace TradeBuddy.Model
 		/// 获取联网价格
 		/// </summary>
 		public void UpdateMinPrice(Action? action = null) {
+			// TODO 注释了获取价格
+			/*
 			minPriceServer = "";
 			minPrice = 0;
 			minPriceUpdateTime = -1;
@@ -132,7 +134,7 @@ namespace TradeBuddy.Model
 							minPrice = -1;
 						else {
 							minPriceUpdateTime = price.lastUploadTime;
-							minPrice = isHQ ? price.minPriceHQ : price.minPriceNQ;
+							minPrice = quality ? price.minPriceHQ : price.minPriceNQ;
 							minPriceServer = price.listings?[0].worldName ?? "";
 						}
 					} catch (HttpRequestException e) {
@@ -140,7 +142,7 @@ namespace TradeBuddy.Model
 						minPrice = -1;
 					}
 				});
-			}
+			}*/
 		}
 		#region init
 		public static PresetItem ParseFromString(string str) {
@@ -155,10 +157,10 @@ namespace TradeBuddy.Model
 
 		public void Init() {
 			if (ItemName.EndsWith("HQ")) {
-				isHQ = true;
+				quality = true;
 				itemName = itemName[0..^2];
 			}
-			var itemByName = Dalamud.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
+			var itemByName = DalamudInterface.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Item>()?.FirstOrDefault(r => r.Name == itemName);
 			if (itemByName == null) {
 				itemId = 0;
 				iconId = 0;

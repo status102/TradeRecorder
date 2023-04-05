@@ -12,22 +12,22 @@ using TradeBuddy.Window;
 
 namespace TradeBuddy
 {
-	public unsafe class PluginUI : IDisposable
+    public unsafe class PluginUI : IDisposable
 	{
 		public readonly static char[] intToHex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 		private Configuration configuration;
-		private readonly static int[] blackList = { 521, 572, 113, 241, 280, 169, 504, 642, 911, 365 };
+		private readonly static int[] blackList = { 673,379,521, 572, 113, 241, 280, 169, 504, 642, 911, 365 };
 
 		private readonly static Dictionary<uint, TextureWrap?> iconList = new();
 		private readonly static Dictionary<uint, TextureWrap?> hqIconList = new();
 		public History History { get; init; }
-		public Trade Trade { get; init; }
+		//public Trade Trade { get; init; }
 		public Trade2 Trade2 { get; init; }
 		public Setting Setting { get; init; }
 		public TradeBuddy TradeBuddy { get; init; }
 
-		public RetainerSellList RetainerSellList { get; init; }
-		public ItemSearchResult ItemSearchResult { get; init; }
+		//public RetainerSellList RetainerSellList { get; init; }
+		//public ItemSearchResult ItemSearchResult { get; init; }
 
 		public AtkArrayDataHolder* atkArrayDataHolder { get; init; } = null;
 		
@@ -41,12 +41,12 @@ namespace TradeBuddy
 		public unsafe PluginUI(TradeBuddy TradeBuddy, Configuration configuration) {
 			this.configuration = configuration;
 			this.TradeBuddy = TradeBuddy;
-			Trade = new(TradeBuddy);
+			//Trade = new(TradeBuddy);
 			Trade2 = new(TradeBuddy);
 			History = new(TradeBuddy);
 			Setting = new(TradeBuddy);
-			RetainerSellList = new(TradeBuddy);
-			ItemSearchResult = new(TradeBuddy);
+			//RetainerSellList = new(TradeBuddy);
+			//ItemSearchResult = new(TradeBuddy);
 
 			var atkArrayDataHolder = &Framework.Instance()->GetUiModule()->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
 			if (atkArrayDataHolder != null && atkArrayDataHolder->StringArrayCount > 0)
@@ -58,7 +58,7 @@ namespace TradeBuddy
 		public void Dispose() {
 			configuration.Dispose();
 
-			Trade.Dispose();
+			//Trade.Dispose();
 			Trade2.Dispose();
 			Setting.Dispose();
 			History.Dispose();
@@ -76,7 +76,6 @@ namespace TradeBuddy
 		}
 
 		public void Draw() {
-			//Trade.Draw(configuration.ShowTrade, ref twiceCheck, ref historyVisible, ref settingsVisible);
 			Trade2.Draw();
 			History.Draw();
 			Setting.Draw();
@@ -140,7 +139,7 @@ namespace TradeBuddy
 		}
 		private static TextureWrap? GetIconStr(uint iconId, bool isHQ) {
 			//"ui/icon/{0:D3}000/{1}{2:D6}.tex";
-			return Dalamud.DataManager.GetImGuiTexture(string.Format("ui/icon/{0:D3}000/{1}{2:D6}_hr1.tex", iconId / 1000u, isHQ ? "hq/" : "", iconId));
+			return DalamudInterface.DataManager.GetImGuiTexture(string.Format("ui/icon/{0:D3}000/{1}{2:D6}_hr1.tex", iconId / 1000u, isHQ ? "hq/" : "", iconId));
 		}
 	}
 }
