@@ -58,9 +58,9 @@ namespace TradeBuddy.Window
 			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref visible)) {
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen)) {
 					ImGui.Indent();
-					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade)) { Config.Save(); }
+					if (ImGui.Checkbox("显示交易窗口", ref Config.ShowTrade)) { Config.Save(); }
 
-					ImGui.Checkbox("显示Opcode", ref changeOpcode);
+					ImGui.Checkbox("修改Opcode", ref changeOpcode);
 					if (changeOpcode) {
 						int tradeForm = Config.OpcodeOfTradeForm;
 						if (ImGui.InputInt("交易窗口触发", ref tradeForm)) {
@@ -73,10 +73,11 @@ namespace TradeBuddy.Window
 							Config.Save();
 						}
 						if (gettingOpcodeFromOpcodeRepo) { ImGui.TextUnformatted("正在从GitHub上更新Opcode"); } else {
-							if (ImGui.Button("从GitHub上更新以下Opcode")) {
+							if (ImGui.Button("从GitHub更新以下Opcode")) {
 								gettingOpcodeFromOpcodeRepo = true;
 								Task.Run(UpdateOpcodeFromGitHub);
 							}
+							if (ImGui.IsItemHovered()) { ImGui.SetTooltip("上方Opcode暂不支持从GitHub获取"); }
 						}
 						int inventoryModifyHandler = Config.OpcodeOfInventoryModifyHandler;
 						if (ImGui.InputInt("InventoryModifyHandler", ref inventoryModifyHandler)) {
@@ -105,7 +106,7 @@ namespace TradeBuddy.Window
 
 				if (ImGui.CollapsingHeader("预期价格")) {
 
-					#region 编辑块
+					#region 按钮块
 					//添加预期的按钮
 					if (Utils.DrawIconButton(FontAwesomeIcon.Plus, -1)) {
 						editIndex = -2;
@@ -133,22 +134,17 @@ namespace TradeBuddy.Window
 						itemList.Clear();
 						Config.Save();
 					}
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("删除所有项目");
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("删除所有项目"); }
 
 					//手动刷新价格
 					ImGui.SameLine();
-					if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -1))
-						itemList.ForEach(item => item.UpdateMinPrice());
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("重新获取所有价格(数据来自Universalis)");
+					if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -1)) { itemList.ForEach(item => item.UpdateMinPrice()); }
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("重新获取所有价格(数据来自Universalis)"); }
 
 					//导出到剪贴板
 					ImGui.SameLine();
-					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1))
-						ImGui.SetClipboardText(string.Join('\n', itemList.Select(i => i.ToString())));
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("导出到剪贴板");
+					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1)) { ImGui.SetClipboardText(string.Join('\n', itemList.Select(i => i.ToString()))); }
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("导出到剪贴板"); }
 
 					//从剪贴板导入
 					ImGui.SameLine();
@@ -171,6 +167,7 @@ namespace TradeBuddy.Window
 					ImGui.TextDisabled("(?)");
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip("双击鼠标左键物品编辑物品名，单击鼠标右键打开详细编辑\n不同价格方案间以;分割\n当最低价低于设定价格时，标黄进行提醒");
+					#endregion
 
 					//添加or编辑预期中
 					if (editIndex != -1 && editIndex < itemList.Count) {
@@ -184,17 +181,14 @@ namespace TradeBuddy.Window
 						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1)) { editIndex = -1; }
 
 						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
-						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
-							save = true;
+						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
 
 						ImGui.InputText("价格", ref priceLabel, 1022564, ImGuiInputTextFlags.CharsNoBlank);
-						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13])
-							save = true;
+						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
 
 						int current_index = -1;
 						string[] items = SearchName(nameLabel).ToArray();
-						if (ImGui.ListBox("##候选表", ref current_index, items, items.Length, 3))
-							nameLabel = items[current_index];
+						if (ImGui.ListBox("##候选表", ref current_index, items, items.Length, 3)) { nameLabel = items[current_index]; }
 
 						if (save && Config.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != Config.PresetItemDictionary[nameLabel]) {
 							Chat.PrintError("物品与已有设定重复，无法添加");
@@ -216,7 +210,7 @@ namespace TradeBuddy.Window
 							editIndex = -1;
 						}
 					}
-					#endregion
+
 					int rowIndex = 0;
 					for (int i = 0; i < itemList.Count; i++) {
 						if (ImGui.GetColumnWidth() < (Item_width + Item_Interval) * (rowIndex + 1) + 8) { rowIndex = 0; }
@@ -331,7 +325,9 @@ namespace TradeBuddy.Window
 			return resultList;
 		}
 		public void Dispose() { }
-
+		/// <summary>
+		/// 从GitHub上获取部分Opcode
+		/// </summary>
 		private async void UpdateOpcodeFromGitHub() {
 			try {
 				var res = await Opcode.GetOpcodesFromGitHub();
