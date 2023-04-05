@@ -55,7 +55,8 @@ namespace TradeBuddy.Window
 					ImGui.Indent();
 					if (ImGui.Checkbox("显示监控窗口", ref Config.ShowTrade)) { Config.Save(); }
 
-					if (ImGui.Checkbox("显示Opcode", ref changeOpcode)) {
+					ImGui.Checkbox("显示Opcode", ref changeOpcode);
+					if (changeOpcode) {
 						int tradeForm = Config.OpcodeOfTradeForm;
 						if (ImGui.InputInt("交易窗口触发", ref tradeForm)) {
 							Config.OpcodeOfTradeForm = (ushort)tradeForm;
