@@ -9,6 +9,7 @@ using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using ImGuiScene;
+using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace TradeRecorder.Window
 {
 	public class Trade2
 	{
-		private TradeBuddy tradeBuddy { get; init; }
+		private TradeRecorder tradeRecorder { get; init; }
 		/// <summary>
 		/// 窗口大小
 		/// </summary>
@@ -84,21 +85,21 @@ namespace TradeRecorder.Window
 
 		#region Init
 		private DalamudLinkPayload Payload { get; init; }
-		private Configuration Config => tradeBuddy.Configuration;
-		public Trade2(TradeBuddy tradeBuddy) {
-			this.tradeBuddy = tradeBuddy;
-			tradeBuddy.GameNetwork.NetworkMessage += NetworkMessageDelegate;
-			Payload = tradeBuddy.PluginInterface.AddChatLinkHandler(0, OnTradeTargetClick);
+		private Configuration Config => tradeRecorder.Configuration;
+		public Trade2(TradeRecorder tradeRecorder) {
+			this.tradeRecorder = tradeRecorder;
+			tradeRecorder.GameNetwork.NetworkMessage += NetworkMessageDelegate;
+			Payload = tradeRecorder.PluginInterface.AddChatLinkHandler(0, OnTradeTargetClick);
 		}
 		public void Dispose() {
-			tradeBuddy.GameNetwork.NetworkMessage -= NetworkMessageDelegate;
-			tradeBuddy.PluginInterface.RemoveChatLinkHandler(0);
+			tradeRecorder.GameNetwork.NetworkMessage -= NetworkMessageDelegate;
+			tradeRecorder.PluginInterface.RemoveChatLinkHandler(0);
 		}
 		#endregion
 		public unsafe void Draw() {
-			if (!Config.ShowTrade || !trading || !onceVisible) { return; }
+			if (!Config.ShowTradeWindow || !trading || !onceVisible) { return; }
 			if (position[0] == int.MinValue) {
-				var address = tradeBuddy.GameGui.GetAddonByName("Trade", 1);
+				var address = DalamudInterface.GameGui.GetAddonByName("Trade", 1);
 				if (address != IntPtr.Zero && ((AtkUnitBase*)address)->UldManager.LoadedState == AtkLoadState.Loaded) {
 					position[0] = ((AtkUnitBase*)address)->X - WIDTH - 5;
 					position[1] = ((AtkUnitBase*)address)->Y + 2;
@@ -137,12 +138,12 @@ namespace TradeRecorder.Window
 
 				// 显示当前交易对象的记录
 				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.History)) { tradeBuddy.PluginUi.History.ShowHistory(target); }
+				if (ImGuiComponents.IconButton(FontAwesomeIcon.History)) { tradeRecorder.PluginUi.History.ShowHistory(target); }
 				if (ImGui.IsItemHovered()) { ImGui.SetTooltip("显示当前交易对象的交易记录"); }
 
 				// 显示设置窗口
 				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog)) { tradeBuddy.PluginUi.Setting.Show(); }
+				if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog)) { tradeRecorder.PluginUi.Setting.Show(); }
 
 				DrawTradeTable(tradeItemList[0], tradeGil[0]);
 				ImGui.Spacing();
@@ -321,6 +322,7 @@ namespace TradeRecorder.Window
 				var itemId = BitConverter.ToUInt16(bytes, 0x10);
 				var isHq = bytes[0x20];
 
+				PluginLog.Verbose($"对方物品:[{slot}]{itemId}-{count}");
 				tradeItemList[1][slot] = new TradeItem(itemId, count, Convert.ToBoolean(isHq));
 			}
 		}
@@ -338,10 +340,13 @@ namespace TradeRecorder.Window
 
 				if (slot == 5) {
 					tradeGil[1] = count;
+					PluginLog.Information($"对方金币:{count}");
 				} else {
 					var itemId = BitConverter.ToUInt16(bytes, 0x10);
 					tradeItemList[1][slot] = new TradeItem(itemId, count);
+					PluginLog.Information($"对方水晶:[{slot}]{itemId}-{count}");
 				}
+
 			}
 		}
 		/// <summary>
@@ -365,7 +370,7 @@ namespace TradeRecorder.Window
 				tradeItemList[1].Where(i => i.Id != 0).ToArray()
 			};
 
-			tradeBuddy.PluginUi.History.AddHistory(status, $"{target.Item2}@{target.Item3}", gil, list);
+			tradeRecorder.PluginUi.History.AddHistory(status, $"{target.Item2}@{target.Item3}", gil, list);
 
 			if (lastTarget != target) {
 				multiGil = new uint[2] { 0, 0 };
@@ -435,7 +440,7 @@ namespace TradeRecorder.Window
 				if (player != null) {
 					PluginLog.Debug($"获得到ID：[{id:X}-{player.Name}]");
 					if (player.ObjectId != DalamudInterface.ClientState.LocalPlayer?.ObjectId) {
-						var world = Utils.GetSever(player.HomeWorld.Id);
+						var world = DalamudInterface.DataManager.GetExcelSheet<World>()?.FirstOrDefault(r => r.RowId == player.HomeWorld.Id);
 						target = (player.HomeWorld.Id, player.Name.TextValue, world?.Name ?? "<Unknown>");
 					}
 				}
@@ -462,8 +467,7 @@ namespace TradeRecorder.Window
 
 			if (trading) {
 				if (direction == NetworkMessageDirection.ZoneUp && opcode == Config.OpcodeOfInventoryModifyHandler) {
-					if (Marshal.ReadByte(dataPtr, 03) == 0x10 && Marshal.ReadByte(dataPtr, 05) == 03)
-						UpdateMyTradeSlot(Marshal.PtrToStructure<InventoryModifyHandler>(dataPtr));
+					UpdateMyTradeSlot(Marshal.PtrToStructure<InventoryModifyHandler>(dataPtr));
 				} else if (direction == NetworkMessageDirection.ZoneDown && opcode == Config.OpcodeOfItemInfo) {
 					byte[] bytes = new byte[0x21];
 					Marshal.Copy(dataPtr, bytes, 0, bytes.Length);
@@ -494,10 +498,10 @@ namespace TradeRecorder.Window
 		/// <returns></returns>
 		private static SeStringBuilder BuildTradeSeString(DalamudLinkPayload payload, bool status, (uint, string, string) target, TradeItem[][] items, uint[] gil) {
 			if (items.Length == 0 || gil.Length == 0) {
-				return new SeStringBuilder().AddText($"[{TradeBuddy.PluginName}]").AddUiForeground("获取交易内容失败", 17);
+				return new SeStringBuilder().AddText($"[{TradeRecorder.PluginName}]").AddUiForeground("获取交易内容失败", 17);
 			}
 			var builder = new SeStringBuilder()
-				.AddText($"[{TradeBuddy.PluginName}]" + SeIconChar.ArrowRight.ToIconString())
+				.AddText($"[{TradeRecorder.PluginName}]" + SeIconChar.ArrowRight.ToIconString())
 				.Add(payload)
 				.AddUiForeground(1).Add(new PlayerPayload(target.Item2, target.Item1)).AddUiForegroundOff();
 			if (target.Item1 != DalamudInterface.ClientState.LocalPlayer?.HomeWorld.Id) { builder.Add(new IconPayload(BitmapFontIcon.CrossWorld)).AddText(target.Item3); }
@@ -546,7 +550,7 @@ namespace TradeRecorder.Window
 		/// <returns></returns>
 		private static SeStringBuilder BuildMultiTradeSeString(DalamudLinkPayload payload, bool status, (uint, string, string) target, TradeItem[][] items, uint[] gil, Dictionary<uint, RecordItem>[] multiItems, uint[] multiGil) {
 			if (items.Length == 0 || gil.Length != 2 || multiItems.Length == 0 || multiGil.Length != 2) {
-				return new SeStringBuilder().AddText($"[{TradeBuddy.PluginName}]").AddUiForeground("获取交易内容失败", 17);
+				return new SeStringBuilder().AddText($"[{TradeRecorder.PluginName}]").AddUiForeground("获取交易内容失败", 17);
 			}
 			var builder = BuildTradeSeString(payload, status, target, items, gil);
 			builder.Add(new NewLinePayload()).AddText("连续交易:");
@@ -614,7 +618,7 @@ namespace TradeRecorder.Window
 		public void OnTradeTargetClick(uint commandId, SeString str) {
 			PlayerPayload? payload = (PlayerPayload?)str.Payloads.Find(i => i.Type == PayloadType.Player);
 			if (payload != null) {
-				tradeBuddy.PluginUi.History.ShowHistory((payload.World.RowId, payload.PlayerName, payload.World.Name.RawString));
+				tradeRecorder.PluginUi.History.ShowHistory((payload.World.RowId, payload.PlayerName, payload.World.Name.RawString));
 			} else {
 				Chat.PrintError("未找到交易对象");
 				PluginLog.Verbose($"未找到交易对象，data=[{str.ToJson()}]");

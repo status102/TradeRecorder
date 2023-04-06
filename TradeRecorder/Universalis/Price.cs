@@ -67,11 +67,14 @@ namespace TradeRecorder.Universalis
 			return items[itemId];
 		}
 
-		private static string GetDcName(uint serverId) {
+		public  static string GetDcName(uint serverId) {
 			if (cnWorldDC.ContainsKey(serverId)) {
 				return cnWorldDC[serverId];
 			} else {
-				// TODO 支持国际服
+				var world = DalamudInterface.DataManager.GetExcelSheet<World>()?.FirstOrDefault(i => i.RowId == serverId);
+				if (world != null) {
+					return world.DataCenter.Value?.Name ?? string.Empty;
+				}
 			}
 			return string.Empty;
 		}

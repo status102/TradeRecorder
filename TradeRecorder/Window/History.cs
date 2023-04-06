@@ -27,7 +27,7 @@ namespace TradeRecorder.Window
 		private List<TradeHistory> historyList = new();
 		private List<TradeHistory> showList = new();
 
-		private readonly TradeBuddy TradeBuddy;
+		private readonly TradeRecorder TradeRecorder;
 		private bool visible = false;
 		private string? target = null;
 
@@ -52,7 +52,7 @@ namespace TradeRecorder.Window
 				ImGui.Spacing();
 				ImGui.SameLine();
 				if (ImGui.Button("导出到csv")) {
-					fileDialog = new FileDialog("save", "导出到csv", ".csv", TradeBuddy.PluginInterface.ConfigDirectory.FullName, "output.csv", "", 1, false, ImGuiFileDialogFlags.None);
+					fileDialog = new FileDialog("save", "导出到csv", ".csv", TradeRecorder.PluginInterface.ConfigDirectory.FullName, "output.csv", "", 1, false, ImGuiFileDialogFlags.None);
 					fileDialog.Show();
 				}
 
@@ -81,13 +81,22 @@ namespace TradeRecorder.Window
 		}
 
 		public void ShowHistory((uint, string, string)? target = null) {
-			visible = true;
-			if (target != null) {
-				this.target = target?.Item2 + "@" + target?.Item3;
-				showList = historyList.Where(i => i.Target == this.target).ToList();
+			if (!visible) {
+				visible = true;
+				if (target != null) {
+					this.target = target?.Item2 + "@" + target?.Item3;
+					showList = historyList.Where(i => i.Target == this.target).ToList();
+				} else {
+					this.target = null;
+					showList = historyList;
+				}
 			} else {
-				this.target = null;
-				showList = historyList;
+				if (this.target?.Equals(this.target = target?.Item2 + "@" + target?.Item3) ?? false) {
+					visible = false;
+				} else {
+					this.target = target?.Item2 + "@" + target?.Item3;
+					showList = historyList.Where(i => i.Target == this.target).ToList();
+				}
 			}
 		}
 
@@ -204,7 +213,7 @@ namespace TradeRecorder.Window
 				giveItemArray = giveList,
 				receiveItemArray = receiviList
 			};
-			using (FileStream stream = File.Open(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append)) {
+			using (FileStream stream = File.Open(Path.Join(TradeRecorder.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Append)) {
 				StreamWriter writer = new(stream);
 				writer.WriteLine(tradeHistory.ToString());
 				writer.Flush();
@@ -213,34 +222,32 @@ namespace TradeRecorder.Window
 		}
 
 		private void ReadHistory() {
-			if (TradeBuddy.ClientState.LocalPlayer == null) { return; }
-			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (TradeRecorder.ClientState.LocalPlayer == null) { return; }
+			var playerName = TradeRecorder.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = TradeRecorder.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			historyList = new();
 
-			string path = Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
+			string path = Path.Join(TradeRecorder.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt");
 
 			using (StreamReader reader = new(File.Open(path, FileMode.OpenOrCreate))) {
 				string tradeStr;
 				while ((tradeStr = reader.ReadLine() ?? "").Length > 0) {
 					TradeHistory? trade = TradeHistory.ParseFromString(tradeStr);
-					if (trade != null)
-						historyList.Add(trade);
+					if (trade != null) { historyList.Add(trade); }
 				}
 			}
-			if(target != null) {
+			if (target != null) {
 				showList = historyList.Where(i => i.Target == this.target).ToList();
 			}
 		}
 
 		private void EditHistory() {
-			if (TradeBuddy.ClientState.LocalPlayer == null)
-				return;
-			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (TradeRecorder.ClientState.LocalPlayer == null) { return; }
+			var playerName = TradeRecorder.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = TradeRecorder.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
-			using (FileStream stream = File.Open(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create)) {
+			using (FileStream stream = File.Open(Path.Join(TradeRecorder.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create)) {
 				StreamWriter writer = new(stream);
 				foreach (TradeHistory tradeHistory in historyList) {
 					if (tradeHistory.visible) {
@@ -257,9 +264,9 @@ namespace TradeRecorder.Window
 		/// </summary>
 		/// <param name="path">保存路径</param>
 		private void ExportHistory(string path) {
-			if (TradeBuddy.ClientState.LocalPlayer == null)
+			if (TradeRecorder.ClientState.LocalPlayer == null)
 				return;
-			PluginLog.Information($"[{TradeBuddy.Name}]保存交易历史: {path}");
+			PluginLog.Information($"[{TradeRecorder.Name}]保存交易历史: {path}");
 			var exportList = historyList.Where(i => i.visible);
 
 			var saveList = historyList.Where(i => i.visible)
@@ -290,21 +297,21 @@ namespace TradeRecorder.Window
 		/// 删除当前角色所有交易记录
 		/// </summary>
 		private void ClearHistory() {
-			if (TradeBuddy.ClientState.LocalPlayer == null)
+			if (TradeRecorder.ClientState.LocalPlayer == null)
 				return;
-			var playerName = TradeBuddy.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = TradeBuddy.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			var playerName = TradeRecorder.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = TradeRecorder.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			// 删除历史记录文件
-			File.Delete(Path.Join(TradeBuddy.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
+			File.Delete(Path.Join(TradeRecorder.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"));
 
 			// 清空缓存表
 			historyList = new();
 		}
 
 		#region init
-		public History(TradeBuddy tradeBuddy) {
-			TradeBuddy = tradeBuddy;
+		public History(TradeRecorder tradeRecorder) {
+			TradeRecorder = tradeRecorder;
 			Task.Run(() => ReadHistory());
 		}
 		public void Dispose() {

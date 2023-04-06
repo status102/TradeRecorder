@@ -21,7 +21,7 @@ namespace TradeRecorder
                 .AddUiForeground(msg, 62);
             DalamudInterface.ChatGui.Print(builder.BuiltString);
         }
-        public static void PrintInfo(string msg) {
+        public static void PrintMsg(string msg) {
             var builder = new SeStringBuilder()
                 .AddUiForeground($"[{TradeRecorder.PluginName}]", 45)
                 .AddUiForeground(msg, 1);

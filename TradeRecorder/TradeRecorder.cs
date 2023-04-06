@@ -7,17 +7,18 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
 using System.Threading.Tasks;
+using TradeRecorder.Universalis;
 
 namespace TradeRecorder
 {
-	public sealed class TradeBuddy : IDalamudPlugin
+	public sealed class TradeRecorder : IDalamudPlugin
 	{
 		public static string PluginName { get; private set; } = string.Empty;
-		public string Name => "Trade Buddy";
+		public string Name => "TradeRecorder";
 
-		private const string commandName = "/tb";
+		private const string commandName = "/tr";
 
-		public static TradeBuddy? Instance { get; private set; }
+		public static TradeRecorder? Instance { get; private set; }
 		public PluginUI PluginUi { get; init; }
 		public Configuration Configuration { get; init; }
 		#region 
@@ -25,15 +26,13 @@ namespace TradeRecorder
 		public CommandManager CommandManager { get; private set; }
 		public ClientState ClientState { get; private set; }
 		public GameNetwork GameNetwork { get; private set; }
-		public GameGui GameGui { get; private set; }
 		#endregion
 
-		public TradeBuddy(
+		public TradeRecorder(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
 			[RequiredVersion("1.0")] CommandManager commandManager,
 			[RequiredVersion("1.0")] ClientState clientState,
-			[RequiredVersion("1.0")] GameNetwork gameNetwork,
-			[RequiredVersion("1.0")] GameGui gameGui
+			[RequiredVersion("1.0")] GameNetwork gameNetwork
 		) {
 			PluginName = Name;
 			Instance = this;
@@ -41,7 +40,6 @@ namespace TradeRecorder
 			CommandManager = commandManager;
 			ClientState = clientState;
 			GameNetwork = gameNetwork;
-			GameGui = gameGui;
 
 			DalamudInterface.Initialize(pluginInterface);
 			Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -73,12 +71,9 @@ namespace TradeRecorder
 			if (string.IsNullOrEmpty(arg)) {
 				this.PluginUi.History.ShowHistory();
 			}
-			if (arg == "cfg" || arg == "config")
-				this.PluginUi.Setting.Show();
+			if (arg == "cfg" || arg == "config") { this.PluginUi.Setting.Show(); }
 #if DEBUG
 			else if (arg == "test") {
-				// TODO 汉化包是否会影响语言？
-				// todo 是否能获取到国际服的大区
 			}
 #endif
 		}

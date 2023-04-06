@@ -3,6 +3,7 @@ using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
 using TradeRecorder.Model;
+using static TradeRecorder.Window.Setting;
 
 namespace TradeRecorder
 {
@@ -14,7 +15,7 @@ namespace TradeRecorder
 		/// <summary>
 		/// 是否显示交易监控窗口
 		/// </summary>
-		public bool ShowTrade = true;
+		public bool ShowTradeWindow = true;
 
 		/// <summary>
 		/// 判定当前是否处于交易中
@@ -41,6 +42,7 @@ namespace TradeRecorder
 		/// </summary>
 		public ushort OpcodeOfUpdateInventorySlot = 0x0313;
 
+		public List<Preset> PresetList = new();
 
 		public List<PresetItem> PresetItemList = new();
 
@@ -64,7 +66,7 @@ namespace TradeRecorder
 		[NonSerialized]
 		private DalamudPluginInterface? pluginInterface;
 
-		public void Initialize(TradeRecorder TradeBuddy, DalamudPluginInterface pluginInterface) {
+		public void Initialize(TradeRecorder TradeRecorder, DalamudPluginInterface pluginInterface) {
 			this.pluginInterface = pluginInterface;
 
 			RefreshKeySet();

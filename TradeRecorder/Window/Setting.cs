@@ -32,16 +32,14 @@ namespace TradeRecorder.Window
 		private bool gettingOpcodeFromOpcodeRepo = false;
 
 		private TextureWrap? FailureImage => PluginUI.GetIcon(784);
-		private readonly TradeBuddy TradeBuddy;
-		private Configuration Config => TradeBuddy.Configuration;
-		public Setting(TradeBuddy tradeBuddy) {
-			this.TradeBuddy = tradeBuddy;
-			itemList = tradeBuddy.Configuration.PresetItemList;
+		private readonly TradeRecorder TradeRecorder;
+		private Configuration Config => TradeRecorder.Configuration;
+		public Setting(TradeRecorder tradeRecorder) {
+			this.TradeRecorder = tradeRecorder;
+			itemList = tradeRecorder.Configuration.PresetItemList;
 		}
 
-		public void Show() {
-			visible = true;
-		}
+		public void Show() { visible = true; }
 		public void Draw() {
 			if (!visible) {
 				firstDraw = true;
@@ -55,10 +53,10 @@ namespace TradeRecorder.Window
 				firstDraw = false;
 			}
 			ImGui.SetNextWindowSize(Window_Size, ImGuiCond.FirstUseEver);
-			if (ImGui.Begin(TradeBuddy.Name + "插件设置", ref visible)) {
+			if (ImGui.Begin(TradeRecorder.Name + "插件设置", ref visible)) {
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen)) {
 					ImGui.Indent();
-					if (ImGui.Checkbox("显示交易窗口", ref Config.ShowTrade)) { Config.Save(); }
+					if (ImGui.Checkbox("显示交易窗口", ref Config.ShowTradeWindow)) { Config.Save(); }
 
 					ImGui.Checkbox("修改Opcode", ref changeOpcode);
 					if (changeOpcode) {
@@ -180,10 +178,11 @@ namespace TradeRecorder.Window
 						ImGui.SameLine();
 						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1)) { editIndex = -1; }
 
+						// 光标+回车 自动保存
 						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
 
-						ImGui.InputText("价格", ref priceLabel, 1022564, ImGuiInputTextFlags.CharsNoBlank);
+						ImGui.InputText("价格", ref priceLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
 						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
 
 						int current_index = -1;
@@ -230,15 +229,14 @@ namespace TradeRecorder.Window
 		/// <param name="id">通过不重复的id来区别不同东西</param>
 		/// <param name="item"></param>
 		private void DrawItemBlock(int index, PresetItem item) {
+			ImGui.PushID(index);
 			if (ImGui.BeginChild($"##ItemBlock-{index}", new(Item_width, Image_Size.Y + 16), true)) {
 				if (item.iconId > 0) {
 					TextureWrap? texture = PluginUI.GetIcon(item.iconId, item.quality);
-					if (texture != null)
-						ImGui.Image(texture.ImGuiHandle, Image_Size);
+					if (texture != null) { ImGui.Image(texture.ImGuiHandle, Image_Size); }
 					ImGui.SameLine();
 				} else {
-					if (FailureImage != null)
-						ImGui.Image(FailureImage.ImGuiHandle, Image_Size);
+					if (FailureImage != null) { ImGui.Image(FailureImage.ImGuiHandle, Image_Size); }
 					ImGui.SameLine();
 				}
 
@@ -246,12 +244,13 @@ namespace TradeRecorder.Window
 
 				//市场出售价更低时显示黄色进行提醒;
 				ImGui.TextUnformatted(item.minPriceServer);
-				if (item.minPrice < 1)
+				if (item.minPrice < 1) {
 					ImGui.TextUnformatted(item.GetMinPriceStr(false));
-				else if (item.minPrice < item.EvaluatePrice())
+				} else if (item.minPrice < item.EvaluatePrice()) {
 					ImGui.TextColored(Alert_Color, $"{item.minPrice:#,0}");
-				else
+				} else {
 					ImGui.TextUnformatted($"{item.minPrice:#,0}");
+				}
 
 				ImGui.EndGroup();
 
@@ -281,7 +280,7 @@ namespace TradeRecorder.Window
 			if (ImGui.BeginPopup($"MoreEdit-{index}", ImGuiWindowFlags.NoMove)) {
 
 				// 编辑当前物品
-				if (Utils.DrawIconButton(FontAwesomeIcon.Edit, -moreEditIndex - 1)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Edit)) {
 					editIndex = moreEditIndex;
 					nameLabel = itemList[moreEditIndex].ItemName;
 					priceLabel = itemList[moreEditIndex].GetPriceStr();
@@ -290,13 +289,13 @@ namespace TradeRecorder.Window
 
 				// 重新获取当前物品的最低价格
 				ImGui.SameLine();
-				if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -moreEditIndex - 2)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Sync)) {
 					itemList[moreEditIndex].UpdateMinPrice();
 					ImGui.CloseCurrentPopup();
 				}
 				// 删除当前物品
 				ImGui.SameLine();
-				if (Utils.DrawIconButton(FontAwesomeIcon.Trash, -moreEditIndex - 3)) {
+				if (Utils.DrawIconButton(FontAwesomeIcon.Trash)) {
 					itemList.RemoveAt(moreEditIndex);
 					Config.Save();
 					editIndex = -1;
@@ -304,6 +303,7 @@ namespace TradeRecorder.Window
 				}
 				ImGui.EndPopup();
 			}
+			ImGui.PopID();
 		}
 
 		/// <summary>
@@ -367,6 +367,8 @@ namespace TradeRecorder.Window
 			}
 			gettingOpcodeFromOpcodeRepo = false;
 		}
+
+
 
 	}
 }

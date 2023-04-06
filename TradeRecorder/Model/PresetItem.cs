@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace TradeRecorder.Model
 {
 
-    public class PresetItem
+	public class PresetItem
 	{
 
 		[Newtonsoft.Json.JsonIgnore]
@@ -167,7 +167,7 @@ namespace TradeRecorder.Model
 			} else {
 				itemId = itemByName.RowId;
 				iconId = itemByName.Icon;
-				if (TradeBuddy.Instance?.ClientState.IsLoggedIn ?? false)
+				if (TradeRecorder.Instance?.ClientState.IsLoggedIn ?? false)
 					UpdateMinPrice();
 			}
 		}

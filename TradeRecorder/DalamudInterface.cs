@@ -18,6 +18,7 @@ namespace TradeRecorder
         [PluginService][RequiredVersion("1.0")] public static DataManager DataManager { get; private set; } = null!;
         [PluginService][RequiredVersion("1.0")] public static ChatGui ChatGui { get; private set; } = null!;
         [PluginService][RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
+        [PluginService][RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
 
     }
 }

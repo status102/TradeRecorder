@@ -11,21 +11,17 @@ namespace TradeRecorder
 {
 	public class Opcode
 	{
-		public static async Task<List<Opcodes>> GetOpcodesFromGitHub() {
-			return await GetOpcodesFromGitHub(CancellationToken.None);
-		}
-		public static async Task<List<Opcodes>> GetOpcodesFromGitHub(CancellationToken cancellationToken ) {
+		public static async Task<List<Opcodes>> GetOpcodesFromGitHub() { return await GetOpcodesFromGitHub(CancellationToken.None); }
+		public static async Task<List<Opcodes>> GetOpcodesFromGitHub(CancellationToken cancellationToken) {
 			var uriBuilder = new UriBuilder($"https://raw.githubusercontent.com/karashiiro/FFXIVOpcodes/master/opcodes.min.json");
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+			using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 			using var result = await client.GetAsync(uriBuilder.Uri, cancellationToken);
 
-			if (result.StatusCode != HttpStatusCode.OK) {
-				throw new HttpRequestException("Invalid status code " + result.StatusCode, null, result.StatusCode);
-			}
-			await using var responseStream = await result.Content.ReadAsStreamAsync();
+			if (result.StatusCode != HttpStatusCode.OK) { throw new HttpRequestException("Invalid status code " + result.StatusCode, null, result.StatusCode); }
+			await using var responseStream = await result.Content.ReadAsStreamAsync(cancellationToken);
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var parsedRes = await JsonSerializer.DeserializeAsync<List<Opcodes>>(responseStream, cancellationToken: cancellationToken);
