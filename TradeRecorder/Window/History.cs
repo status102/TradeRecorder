@@ -180,9 +180,6 @@ namespace TradeRecorder.Window
 				Chat.PrintError("历史记录追加失败，Player为空");
 				return;
 			}
-			var playerName = DalamudInterface.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = DalamudInterface.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
-
 			var giveList = items[0].Select(i => new TradeHistory.HistoryItem(i.IconId ?? 0, i.Name ?? "<Unknown>", i.Count, i.Quality)).ToArray();
 			var receiviList = items[1].Select(i => new TradeHistory.HistoryItem(i.IconId ?? 0, i.Name ?? "<Unknown>", i.Count, i.Quality)).ToArray();
 
@@ -195,14 +192,15 @@ namespace TradeRecorder.Window
 				receiveItemArray = receiviList
 			};
 			historyList.Add(tradeHistory);
-			if (this.target == null || this.target == target) { showList.Add(tradeHistory); }
+			// null情况下，showList = historyList，无需重复添加
+			if (this.target == target) { showList.Add(tradeHistory); }
 			isHistoryChanged = true;
 		}
 
 		private void ReadHistory() {
-			if (tradeRecorder.ClientState.LocalPlayer == null) { return; }
-			var playerName = tradeRecorder.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = tradeRecorder.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (DalamudInterface.ClientState.LocalPlayer == null) { return; }
+			var playerName = DalamudInterface.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudInterface.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			historyList = new();
 			historyTargetSet = new();
@@ -226,9 +224,9 @@ namespace TradeRecorder.Window
 		}
 
 		private void SaveHistory() {
-			if (tradeRecorder.ClientState.LocalPlayer == null) { return; }
-			var playerName = tradeRecorder.ClientState.LocalPlayer!.Name.TextValue;
-			var playerWorld = tradeRecorder.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
+			if (DalamudInterface.ClientState.LocalPlayer == null) { return; }
+			var playerName = DalamudInterface.ClientState.LocalPlayer!.Name.TextValue;
+			var playerWorld = DalamudInterface.ClientState.LocalPlayer!.HomeWorld.GameData!.Name.RawString;
 
 			using (FileStream stream = File.Open(Path.Join(tradeRecorder.PluginInterface.ConfigDirectory.FullName, $"{playerWorld}_{playerName}.txt"), FileMode.Create)) {
 				StreamWriter writer = new(stream);
@@ -244,7 +242,7 @@ namespace TradeRecorder.Window
 		/// </summary>
 		/// <param name="path">保存路径</param>
 		private void ExportHistory(string path) {
-			if (tradeRecorder.ClientState.LocalPlayer == null) { return; }
+			if (DalamudInterface.ClientState.LocalPlayer == null) { return; }
 			PluginLog.Information($"[{tradeRecorder.Name}]保存交易历史: {path}");
 
 			var saveList = showList.Where(i => i.visible).Select(i => new string[7] {
