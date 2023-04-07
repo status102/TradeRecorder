@@ -1,8 +1,10 @@
-﻿using Dalamud.Interface;
+﻿using Dalamud.Game.Text;
+using Dalamud.Interface;
 using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel.GeneratedSheets;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,88 +18,68 @@ namespace TradeRecorder.Window
 	public class Setting : IWindow
 	{
 		private readonly static Vector2 Window_Size = new(720, 640);
-		private readonly static Vector2 Image_Size = new(54, 54);
-		private readonly static Vector4 Alert_Color = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
+		private readonly static Vector2 IMAGE_SIZE = new(54, 54);
+		private readonly static Vector4 ALERT_COLOR = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
+		/// <summary>
+		/// 不能在市场出售时展示灰色标
+		/// </summary>
+		private readonly static Vector4 UNMARKETABLE_COLOR = new(1, 1, 1, 200 / 255f);
+		private readonly static Vector4 DISABLE_COLOR = new(1, 1, 1, 0.5f);
 		private const int Item_width = 190, Item_Interval = 5;
 
+		private readonly TradeRecorder tradeRecorder;
+		private Configuration Config => tradeRecorder.Configuration;
+
 		private bool firstDraw = false;
-		private int editIndex = -1, moreEditIndex = -1;
-		private string nameLabel = "", priceLabel = "";
-		private readonly List<PresetItem> itemList;
 		private bool visible = false;
-		private bool changeOpcode = false;
+		private bool showOpcode = false;
+		private bool capturingOpcode = false;
+		private uint captureCountdown = 0;
 		/// <summary>
 		/// 正在从GitHub获取Opcode
 		/// </summary>
-		private bool gettingOpcodeFromOpcodeRepo = false;
+		private bool downloadingOpcode = false;
 
-		private TextureWrap? FailureImage => PluginUI.GetIcon(784);
-		private readonly TradeRecorder TradeRecorder;
-		private Configuration Config => TradeRecorder.Configuration;
+		//private int editIndex = -1;
+		//private int moreEditIndex = -1;
+
+		private string editName = "", editSetPrice = "", editSetCount = "", editStackPrice = "";
+		private bool editQuality = false;
+
+		private Preset? editItem = null;
+		private List<Preset> presetList => Config.PresetList;
+		private uint worldId => tradeRecorder.homeWorldId;
+
+		private static TextureWrap? FailureImage => PluginUI.GetIcon(784);
 		public Setting(TradeRecorder tradeRecorder) {
-			this.TradeRecorder = tradeRecorder;
-			itemList = tradeRecorder.Configuration.PresetItemList;
+			this.tradeRecorder = tradeRecorder;
+			//itemList = tradeRecorder.Configuration.PresetItemList;
 		}
 
-		public void Show() { visible = true; }
+		public void Show() { visible = !visible; }
 		public void Draw() {
 			if (!visible) {
 				firstDraw = true;
-				editIndex = -1;
+				editItem = null;
 				return;
 			}
 
 			//窗口启动时检查未获取价格的道具
 			if (firstDraw) {
-				itemList.ForEach(item => { if (item.minPrice == -2) item.UpdateMinPrice(); });
+				//itemList.ForEach(item => { if (item.minPrice == -2) item.UpdateMinPrice(); });
 				firstDraw = false;
 			}
 			ImGui.SetNextWindowSize(Window_Size, ImGuiCond.FirstUseEver);
-			if (ImGui.Begin(TradeRecorder.Name + "插件设置", ref visible)) {
+			if (ImGui.Begin(tradeRecorder.Name + "插件设置", ref visible)) {
 				if (ImGui.CollapsingHeader("基础设置", ImGuiTreeNodeFlags.DefaultOpen)) {
 					ImGui.Indent();
 					if (ImGui.Checkbox("显示交易窗口", ref Config.ShowTradeWindow)) { Config.Save(); }
 
-					ImGui.Checkbox("修改Opcode", ref changeOpcode);
-					if (changeOpcode) {
-						int tradeForm = Config.OpcodeOfTradeForm;
-						if (ImGui.InputInt("交易窗口触发", ref tradeForm)) {
-							Config.OpcodeOfTradeForm = (ushort)tradeForm;
-							Config.Save();
-						}
-						int targetInfo = Config.OpcodeOfTradeTargetInfo;
-						if (ImGui.InputInt("交易ID获取", ref targetInfo)) {
-							Config.OpcodeOfTradeTargetInfo = (ushort)targetInfo;
-							Config.Save();
-						}
-						if (gettingOpcodeFromOpcodeRepo) { ImGui.TextUnformatted("正在从GitHub上更新Opcode"); } else {
-							if (ImGui.Button("从GitHub更新以下Opcode")) {
-								gettingOpcodeFromOpcodeRepo = true;
-								Task.Run(UpdateOpcodeFromGitHub);
-							}
-							if (ImGui.IsItemHovered()) { ImGui.SetTooltip("上方Opcode暂不支持从GitHub获取"); }
-						}
-						int inventoryModifyHandler = Config.OpcodeOfInventoryModifyHandler;
-						if (ImGui.InputInt("InventoryModifyHandler", ref inventoryModifyHandler)) {
-							Config.OpcodeOfInventoryModifyHandler = (ushort)inventoryModifyHandler;
-							Config.Save();
-						}
-						int itemInfo = Config.OpcodeOfItemInfo;
-						if (ImGui.InputInt("ItemInfo", ref itemInfo)) {
-							Config.OpcodeOfItemInfo = (ushort)itemInfo;
-							Config.Save();
-						}
-						int currencyCrystalInfo = Config.OpcodeOfCurrencyCrystalInfo;
-						if (ImGui.InputInt("CurrencyCrystalInfo", ref currencyCrystalInfo)) {
-							Config.OpcodeOfCurrencyCrystalInfo = (ushort)currencyCrystalInfo;
-							Config.Save();
-						}
-						int updateInventorySlot = Config.OpcodeOfUpdateInventorySlot;
-						if (ImGui.InputInt("UpdateInventorySlot", ref updateInventorySlot)) {
-							Config.OpcodeOfUpdateInventorySlot = (ushort)updateInventorySlot;
-							Config.Save();
-						}
-					}
+					ImGui.Checkbox("修改Opcode", ref showOpcode);
+					ImGui.SameLine();
+					ImGui.TextDisabled("(?)");
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("每次版本更新后，请更新全部Opcode"); }
+					if (showOpcode) { DrawOpcodeBlock(); }
 
 					ImGui.Unindent();
 				}
@@ -107,55 +89,64 @@ namespace TradeRecorder.Window
 					#region 按钮块
 					//添加预期的按钮
 					if (Utils.DrawIconButton(FontAwesomeIcon.Plus, -1)) {
-						editIndex = -2;
+						Preset item = new(string.Empty, false);
+						presetList.Add(item);
+						EditItem(item);
 
 						string clipboard = "";
+						editQuality = false;
 						try {
-							clipboard = ImGui.GetClipboardText().Replace("\n", "").Replace("\r", "").Replace("\t", "").Trim().Replace("", "HQ");
+							clipboard = ImGui.GetClipboardText().Replace("\n", string.Empty).Replace("\r", string.Empty).Replace("\t", string.Empty).Trim();
 						} catch (NullReferenceException) { }
-						nameLabel = "";
-						priceLabel = "0";
-
-						foreach (char c in clipboard) {
-							if (c >= '0' && c <= '9')
-								priceLabel += c;
-							else
-								nameLabel += c;
+						if (clipboard.Contains(SeIconChar.HighQuality.ToIconString())) {
+							editQuality = true;
+							clipboard = clipboard.Replace(SeIconChar.HighQuality.ToIconString(), string.Empty);
 						}
-						priceLabel = priceLabel.TrimStart('0');
-						priceLabel = string.IsNullOrEmpty(priceLabel) ? "0" : priceLabel;
+						editName = "";
+						editSetPrice = "0";
+						editSetCount = "0";
+						editStackPrice = "0";
 					}
 
 					//删除所有预期
 					ImGui.SameLine();
 					if (Utils.DrawIconButton(FontAwesomeIcon.Trash, -1)) {
-						itemList.Clear();
+						presetList.Clear();
 						Config.Save();
 					}
 					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("删除所有项目"); }
 
 					//手动刷新价格
 					ImGui.SameLine();
-					if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -1)) { itemList.ForEach(item => item.UpdateMinPrice()); }
+					if (Utils.DrawIconButton(FontAwesomeIcon.Sync, -1)) { presetList.ForEach(item => item.ItemPrice.Update(worldId)); }
 					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("重新获取所有价格(数据来自Universalis)"); }
 
+					// todo 重写导出
 					//导出到剪贴板
 					ImGui.SameLine();
-					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1)) { ImGui.SetClipboardText(string.Join('\n', itemList.Select(i => i.ToString()))); }
+					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1)) {
+						ImGui.SetClipboardText(JsonConvert.SerializeObject(presetList));
+					}
 					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("导出到剪贴板"); }
 
+					// todo 重做导入
 					//从剪贴板导入
 					ImGui.SameLine();
 					if (Utils.DrawIconButton(FontAwesomeIcon.Download, -1)) {
 						try {
-							string clipboard = ImGui.GetClipboardText().Trim();
-							string[] strLine = clipboard.Split('\n');
-							foreach (string line in strLine) {
-								if (!string.IsNullOrEmpty(line))
-									itemList.Add(PresetItem.ParseFromString(line));
+							string clipboard = ImGui.GetClipboardText().Trim().Replace("/r", string.Empty).Replace("/n", string.Empty);
+							var items = JsonConvert.DeserializeObject<List<Preset>>(clipboard);
+							foreach (var item in items ?? new()) {
+								var exist = Config.PresetList.FindIndex(i => i.Name == item.Name && i.Quality == item.Quality);
+								if (exist == -1) {
+									Config.PresetList.Add(item);
+								} else {
+									Config.PresetList[exist] = item;
+								}
 							}
-						} catch (NullReferenceException e) {
-							PluginLog.Error("从剪贴板导入失败\n" + e.ToString());
+						} catch (Exception e) {
+							Chat.PrintError("从剪贴板导入失败");
+							PluginLog.Error("从剪贴板导入失败" + e.ToString());
 						}
 						Config.Save();
 					}
@@ -163,64 +154,91 @@ namespace TradeRecorder.Window
 
 					ImGui.SameLine();
 					ImGui.TextDisabled("(?)");
-					if (ImGui.IsItemHovered())
-						ImGui.SetTooltip("双击鼠标左键物品编辑物品名，单击鼠标右键打开详细编辑\n不同价格方案间以;分割\n当最低价低于设定价格时，标黄进行提醒");
+					if (ImGui.IsItemHovered()) { ImGui.SetTooltip("双击鼠标左键物品编辑物品名，单击鼠标右键打开详细编辑\n不同价格方案间以;分割\n当最低价低于设定价格时，标黄进行提醒"); }
 					#endregion
 
 					//添加or编辑预期中
-					if (editIndex != -1 && editIndex < itemList.Count) {
-						bool save = false;
-						//保存设置
-						ImGui.SameLine();
-						if (Utils.DrawIconButton(FontAwesomeIcon.Check, -1) && !string.IsNullOrEmpty(nameLabel)) { save = true; }
+					DrawEditBlock();
 
-						//取消编辑
-						ImGui.SameLine();
-						if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1)) { editIndex = -1; }
-
-						// 光标+回车 自动保存
-						ImGui.InputText("名字", ref nameLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
-						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
-
-						ImGui.InputText("价格", ref priceLabel, 256, ImGuiInputTextFlags.CharsNoBlank);
-						if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
-
-						int current_index = -1;
-						string[] items = SearchName(nameLabel).ToArray();
-						if (ImGui.ListBox("##候选表", ref current_index, items, items.Length, 3)) { nameLabel = items[current_index]; }
-
-						if (save && Config.PresetItemDictionary.ContainsKey(nameLabel) && editIndex != Config.PresetItemDictionary[nameLabel]) {
-							Chat.PrintError("物品与已有设定重复，无法添加");
-							save = false;
-						} else if (save) {
-							if (nameLabel == "") {
-								itemList.RemoveAt(editIndex);
-							} else {
-								if (editIndex == -2) {
-									PresetItem presetItem = new();
-									itemList.Add(presetItem);
-
-									editIndex = itemList.Count - 1;
-								}
-								itemList[editIndex].ItemName = nameLabel;
-								itemList[editIndex].SetPriceStr(priceLabel.Replace("-", string.Empty).Replace(",", string.Empty));
-							}
-							Config.Save();
-							editIndex = -1;
-						}
-					}
-
+					// todo 做一个drag表
 					int rowIndex = 0;
-					for (int i = 0; i < itemList.Count; i++) {
+					for (int i = 0; i < presetList.Count; i++) {
 						if (ImGui.GetColumnWidth() < (Item_width + Item_Interval) * (rowIndex + 1) + 8) { rowIndex = 0; }
 
 						if (rowIndex > 0) { ImGui.SameLine(rowIndex * (Item_width + Item_Interval) + 8); }
 						rowIndex++;
 
-						DrawItemBlock(i, itemList[i]);
+						DrawItemBlock(i, presetList[i]);
 					}
 				}
 				ImGui.End();
+			}
+		}
+		private void EditItem(Preset item) {
+			editItem = item;
+			editName = editItem.Name;
+			editQuality = editItem.Quality;
+			editSetPrice = editItem.SetPrice.ToString();
+			editSetCount = editItem.SetCount.ToString();
+			editStackPrice = editItem.StackPrice.ToString();
+		}
+		private void DrawEditBlock() {
+			if (editItem == null) { return; }
+			bool save = false;
+
+			//保存设置
+			ImGui.SameLine();
+			if (Utils.DrawIconButton(FontAwesomeIcon.Check, -1) && !string.IsNullOrEmpty(editName)) { save = true; }
+
+			//取消编辑
+			ImGui.SameLine();
+			if (Utils.DrawIconButton(FontAwesomeIcon.Times, -1)) { editItem = null; return; }
+
+			// 光标+回车 自动保存
+			ImGui.InputText("名字", ref editName, 1288, ImGuiInputTextFlags.CharsNoBlank);
+			if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
+			ImGui.SameLine();
+			ImGui.Checkbox(SeIconChar.HighQuality.ToIconString(), ref editQuality);
+
+			ImGui.SetNextItemWidth(80);
+			ImGui.InputText(SeIconChar.Gil.ToIconString() + "每", ref editSetPrice, 32, ImGuiInputTextFlags.CharsDecimal);
+			if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(40);
+			ImGui.InputText("个", ref editSetCount, 4, ImGuiInputTextFlags.CharsDecimal);
+			if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.TextUnformatted("每组");
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(80);
+			ImGui.InputText(SeIconChar.Gil.ToIconString(), ref editStackPrice, 32, ImGuiInputTextFlags.CharsDecimal);
+			if (ImGui.IsItemFocused() && ImGui.GetIO().KeysDown[13]) { save = true; }
+
+			// todo 候选表尝试使用弹出菜单
+			int current_index = -1;
+			string[] items = SearchName(editName).ToArray();
+			if (ImGui.ListBox("##候选表", ref current_index, items, items.Length, 3)) { editName = items[current_index]; }
+
+			if (save && presetList.IndexOf(editItem) == presetList.FindIndex(i => i.Name == editName && i.Quality == editQuality)) {
+				if (editItem.Id == 0) { presetList.Remove(editItem); }
+				Chat.PrintError("物品与已有设定重复，无法添加");
+				save = false;
+				editItem = null;
+			} else if (save) {
+				if (editName == string.Empty) {
+					presetList.Remove(editItem);
+				} else {
+					uint setPrice = uint.Parse(0 + editSetPrice);
+					uint setCount = uint.Parse(0 + editSetCount);
+					uint stackPrice = uint.Parse(0 + editStackPrice);
+
+					presetList[presetList.IndexOf(editItem)] = new(editName, editQuality, setPrice, setCount, stackPrice);
+				}
+
+				Config.Save();
+				save = false;
+				editItem = null;
 			}
 		}
 		/// <summary>
@@ -228,77 +246,69 @@ namespace TradeRecorder.Window
 		/// </summary>
 		/// <param name="id">通过不重复的id来区别不同东西</param>
 		/// <param name="item"></param>
-		private void DrawItemBlock(int index, PresetItem item) {
+		private void DrawItemBlock(int index, Preset item) {
+			if (item.Id == 0) { return; }
 			ImGui.PushID(index);
-			if (ImGui.BeginChild($"##ItemBlock-{index}", new(Item_width, Image_Size.Y + 16), true)) {
-				if (item.iconId > 0) {
-					TextureWrap? texture = PluginUI.GetIcon(item.iconId, item.quality);
-					if (texture != null) { ImGui.Image(texture.ImGuiHandle, Image_Size); }
-					ImGui.SameLine();
-				} else {
-					if (FailureImage != null) { ImGui.Image(FailureImage.ImGuiHandle, Image_Size); }
-					ImGui.SameLine();
-				}
 
+			if (ImGui.BeginChild($"##ItemBlock-{index}", new(Item_width, IMAGE_SIZE.Y + 16), true)) {
+				// 左侧物品图标
+				TextureWrap? texture = PluginUI.GetIcon(item.IconId, item.Quality);
+				if (texture != null) {
+					ImGui.Image(texture.ImGuiHandle, IMAGE_SIZE);
+				} else if (FailureImage != null) { ImGui.Image(FailureImage.ImGuiHandle, IMAGE_SIZE); }
+
+				ImGui.SameLine();
 				ImGui.BeginGroup();
 
-				//市场出售价更低时显示黄色进行提醒;
-				ImGui.TextUnformatted(item.minPriceServer);
-				if (item.minPrice < 1) {
-					ImGui.TextUnformatted(item.GetMinPriceStr(false));
-				} else if (item.minPrice < item.EvaluatePrice()) {
-					ImGui.TextColored(Alert_Color, $"{item.minPrice:#,0}");
+				ImGui.TextUnformatted(item.Name + (item.Quality ? SeIconChar.HighQuality.ToIconString() : string.Empty));
+
+				if (item.ItemPrice.Marketable) {
+					ImGui.TextUnformatted(item.GetPresetString());
 				} else {
-					ImGui.TextUnformatted($"{item.minPrice:#,0}");
+					// 如果不能在市场出售
+					ImGui.TextColored(UNMARKETABLE_COLOR, item.GetPresetString());
 				}
-
 				ImGui.EndGroup();
-
 				ImGui.EndChild();
 			}
-
 			if (ImGui.IsItemHovered()) {
+
 				ImGui.BeginTooltip();
-				ImGui.TextUnformatted($"物品名: {item.ItemName}");
-				ImGui.TextUnformatted($"预设价格(价格/个): {item.GetPriceStr()}");
-				if (item.minPrice > 0) {
-					ImGui.TextUnformatted($"大区最低: {item.GetMinPriceStr(true)}");
-					ImGui.TextUnformatted($"更新时间: {item.GetMinPriceUpdateTimeStr()}");
+				ImGui.TextUnformatted($"名称: {item.Name}");
+				ImGui.TextUnformatted($"预设: {item.GetPresetString()}");
+				if (item.ItemPrice.GetMinPrice(worldId).Item4 == 0) {
+					// 获取失败
+					ImGui.TextUnformatted($"{item.ItemPrice.GetMinPrice(worldId).Item3}");
+				} else {
+					ImGui.TextUnformatted($"NQ: {item.ItemPrice.GetMinPrice(worldId).Item1:#,0}");
+					ImGui.TextUnformatted($"HQ: {item.ItemPrice.GetMinPrice(worldId).Item2:#,0}");
+					ImGui.TextUnformatted($"服务器: {item.ItemPrice.GetMinPrice(worldId).Item3:#,0}");
 				}
 				ImGui.EndTooltip();
 
-				if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left)) {
-					editIndex = index;
-					nameLabel = item.ItemName;
-					priceLabel = item.GetPriceStr();
-				}
 				if (ImGui.IsItemClicked(ImGuiMouseButton.Right)) {
 					ImGui.OpenPopup($"MoreEdit-{index}");
-					moreEditIndex = index;
 				}
 			}
 			if (ImGui.BeginPopup($"MoreEdit-{index}", ImGuiWindowFlags.NoMove)) {
 
 				// 编辑当前物品
 				if (Utils.DrawIconButton(FontAwesomeIcon.Edit)) {
-					editIndex = moreEditIndex;
-					nameLabel = itemList[moreEditIndex].ItemName;
-					priceLabel = itemList[moreEditIndex].GetPriceStr();
+					EditItem(item);
 					ImGui.CloseCurrentPopup();
 				}
 
 				// 重新获取当前物品的最低价格
 				ImGui.SameLine();
 				if (Utils.DrawIconButton(FontAwesomeIcon.Sync)) {
-					itemList[moreEditIndex].UpdateMinPrice();
+					item.ItemPrice.Update(worldId);
 					ImGui.CloseCurrentPopup();
 				}
 				// 删除当前物品
 				ImGui.SameLine();
 				if (Utils.DrawIconButton(FontAwesomeIcon.Trash)) {
-					itemList.RemoveAt(moreEditIndex);
+					presetList.Remove(item);
 					Config.Save();
-					editIndex = -1;
 					ImGui.CloseCurrentPopup();
 				}
 				ImGui.EndPopup();
@@ -324,13 +334,104 @@ namespace TradeRecorder.Window
 			}
 			return resultList;
 		}
-		public void Dispose() { }
+		public void Dispose() {
+			if (capturingOpcode) { OpcodeUtils.Cancel(); }
+		}
+
+		private void DrawOpcodeBlock() {
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+			if (!capturingOpcode) {
+				if (ImGui.Button("捕获Opcode※")) { CaptureOpcode(); }
+				ImGui.SameLine();
+				ImGui.TextDisabled("(?)");
+				if (ImGui.IsItemHovered()) {
+					ImGui.SetTooltip("请在点击后一分钟内，与任意玩家打开交易窗口后关闭。\n无需进行实际交易行为，打开窗口后取消交易即可。");
+				}
+			} else {
+				ImGui.TextUnformatted($"正在尝试自动捕获Opcode，{captureCountdown}s后结束");
+				ImGui.BeginDisabled();
+			}
+			ImGui.SetNextItemWidth(200);
+			int tradeForm = Config.OpcodeOfTradeForm;
+			if (ImGui.InputInt("交易窗口触发※", ref tradeForm)) {
+				Config.OpcodeOfTradeForm = (ushort)tradeForm;
+				Config.Save();
+			}
+			ImGui.SetNextItemWidth(200);
+			int targetInfo = Config.OpcodeOfTradeTargetInfo;
+			if (ImGui.InputInt("交易目标获取※", ref targetInfo)) {
+				Config.OpcodeOfTradeTargetInfo = (ushort)targetInfo;
+				Config.Save();
+			}
+			if (capturingOpcode) { ImGui.EndDisabled(); }
+
+			// 下面4个opcode已被收录，直接从GitHub上面更新
+			if (!downloadingOpcode) {
+				if (ImGui.Button("从GitHub更新以下Opcode")) {
+					downloadingOpcode = true;
+					Task.Run(DownloadOpcodeFromGitHub);
+				}
+			} else {
+				ImGui.TextUnformatted("正在从GitHub上更新Opcode");
+				ImGui.BeginDisabled();
+			}
+			ImGui.SetNextItemWidth(200);
+			int inventoryModifyHandler = Config.OpcodeOfInventoryModifyHandler;
+			if (ImGui.InputInt("InventoryModifyHandler", ref inventoryModifyHandler)) {
+				Config.OpcodeOfInventoryModifyHandler = (ushort)inventoryModifyHandler;
+				Config.Save();
+			}
+			ImGui.SetNextItemWidth(200);
+			int itemInfo = Config.OpcodeOfItemInfo;
+			if (ImGui.InputInt("ItemInfo", ref itemInfo)) {
+				Config.OpcodeOfItemInfo = (ushort)itemInfo;
+				Config.Save();
+			}
+			ImGui.SetNextItemWidth(200);
+			int currencyCrystalInfo = Config.OpcodeOfCurrencyCrystalInfo;
+			if (ImGui.InputInt("CurrencyCrystalInfo", ref currencyCrystalInfo)) {
+				Config.OpcodeOfCurrencyCrystalInfo = (ushort)currencyCrystalInfo;
+				Config.Save();
+			}
+			ImGui.SetNextItemWidth(200);
+			int updateInventorySlot = Config.OpcodeOfUpdateInventorySlot;
+			if (ImGui.InputInt("UpdateInventorySlot", ref updateInventorySlot)) {
+				Config.OpcodeOfUpdateInventorySlot = (ushort)updateInventorySlot;
+				Config.Save();
+			}
+			if (downloadingOpcode) { ImGui.EndDisabled(); }
+		}
+
+		private void CaptureOpcode() {
+			OpcodeUtils.CaptureOpcode((status, windowOpcode, targetOpcode) => {
+				capturingOpcode = false;
+				if (!status || windowOpcode == 0 || targetOpcode == 0) {
+					Chat.PrintWarning("自动捕获Opcode失败");
+				} else {
+					Config.OpcodeOfTradeForm = windowOpcode;
+					Config.OpcodeOfTradeTargetInfo = targetOpcode;
+					Config.Save();
+					Chat.PrintLog("自动捕获Opcode成功");
+				}
+			});
+			capturingOpcode = true;
+			Task.Run(async () => {
+				captureCountdown = 60;
+				while (capturingOpcode && captureCountdown > 0) {
+					await Task.Delay(1000);
+					captureCountdown--;
+				}
+				if (capturingOpcode && captureCountdown == 0) { OpcodeUtils.Cancel(); }
+			});
+		}
 		/// <summary>
 		/// 从GitHub上获取部分Opcode
 		/// </summary>
-		private async void UpdateOpcodeFromGitHub() {
+		private async void DownloadOpcodeFromGitHub() {
 			try {
-				var res = await Opcode.GetOpcodesFromGitHub();
+				var res = await OpcodeUtils.GetOpcodesFromGitHub();
 				if (res == null) {
 					Chat.PrintWarning("无法从GitHub获取Opcode，返回为空");
 				} else {
@@ -365,7 +466,7 @@ namespace TradeRecorder.Window
 				Chat.PrintWarning("无法从GitHub获取Opcode，请检查是否可以访问到GitHub");
 				PluginLog.Error(e.ToString());
 			}
-			gettingOpcodeFromOpcodeRepo = false;
+			downloadingOpcode = false;
 		}
 
 

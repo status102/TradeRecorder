@@ -42,7 +42,6 @@ namespace TradeRecorder.Window
 			}
 			ImGui.SetNextWindowSize(new Vector2(600, 800), ImGuiCond.FirstUseEver);
 			if (ImGui.Begin("交易历史记录", ref visible, ImGuiWindowFlags.NoScrollbar)) {
-				// todo 增加单角色清除
 				if (target == null) { if (ImGui.Button("全部清除")) { ClearHistory(); } } else {
 					if (ImGui.Button("清除当前目标")) {
 						ClearHistory(target);

@@ -6,6 +6,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Logging;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using ImGuiScene;
@@ -16,11 +17,12 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using TradeRecorder.Model;
+using TradeRecorder.Model.FFXIV;
 using TradeRecorder.Universalis;
 
 namespace TradeRecorder.Window
 {
-	public class Trade2
+    public class Trade
 	{
 		private TradeRecorder tradeRecorder { get; init; }
 		/// <summary>
@@ -31,6 +33,7 @@ namespace TradeRecorder.Window
 		private bool onceVisible = true;
 		/// <summary>
 		/// 显示价格的颜色，RBGA
+		/// 绿色为设定HQ但交易NQ；黄色为设定NQ但交易HQ
 		/// </summary>
 		private readonly static Vector4[] COLOR = new Vector4[] { new(1, 1, 1, 1), new(0, 1, 0, 1), new(1, 1, 0, 1) };
 		private readonly static string[] COL_NAME = { "", "物品", "数量", "预期", "最低价" };
@@ -82,17 +85,18 @@ namespace TradeRecorder.Window
 		/// 对方交易栏的发包序号，序号步进后需要清空道具栏
 		/// </summary>
 		private ushort targetRound = 0;
+		private readonly object targetRoundLock = new();
 
 		#region Init
 		private DalamudLinkPayload Payload { get; init; }
 		private Configuration Config => tradeRecorder.Configuration;
-		public Trade2(TradeRecorder tradeRecorder) {
+		public Trade(TradeRecorder tradeRecorder) {
 			this.tradeRecorder = tradeRecorder;
-			tradeRecorder.GameNetwork.NetworkMessage += NetworkMessageDelegate;
+			DalamudInterface.GameNetwork.NetworkMessage += NetworkMessageDelegate;
 			Payload = tradeRecorder.PluginInterface.AddChatLinkHandler(0, OnTradeTargetClick);
 		}
 		public void Dispose() {
-			tradeRecorder.GameNetwork.NetworkMessage -= NetworkMessageDelegate;
+			DalamudInterface.GameNetwork.NetworkMessage -= NetworkMessageDelegate;
 			tradeRecorder.PluginInterface.RemoveChatLinkHandler(0);
 		}
 		#endregion
@@ -138,7 +142,7 @@ namespace TradeRecorder.Window
 
 				// 显示当前交易对象的记录
 				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.History)) { tradeRecorder.PluginUi.History.ShowHistory(target); }
+				if (ImGuiComponents.IconButton(FontAwesomeIcon.History)) { tradeRecorder.PluginUi.History.ShowHistory(target.Item2 + "@" + target.Item3); }
 				if (ImGui.IsItemHovered()) { ImGui.SetTooltip("显示当前交易对象的交易记录"); }
 
 				// 显示设置窗口
@@ -179,57 +183,55 @@ namespace TradeRecorder.Window
 					if (icon != null) { ImGui.Image(icon.ImGuiHandle, IMAGE_SIZE); }
 
 					ImGui.TableNextColumn();
-					ImGui.TextUnformatted(items[i].Name);
+					ImGui.TextUnformatted(items[i].Name + (items[i].Quality?SeIconChar.HighQuality.ToIconString():string.Empty));
 
-					// TODO 右键显示预设
-					if (ImGui.IsItemHovered()) {
-						try {
-							var itemPresetStr = Config.PresetItemList[Config.PresetItemDictionary[items[i].Name ?? ""]].GetPriceStr();
-							//if (!string.IsNullOrEmpty(itemPresetStr))
-							//ImGui.SetTooltip($"{itemList[i].priceName} 预设：{itemPresetStr}");
-						} catch (KeyNotFoundException) { }
-					}
+					var itemPreset = items[i].ItemPreset;
+					if (ImGui.IsItemHovered() && itemPreset != null) { ImGui.SetTooltip($"预设：{itemPreset.GetPresetString()}"); }
 
 					ImGui.TableNextColumn();
 					ImGui.TextUnformatted(Convert.ToString(items[i].Count));
 
 					ImGui.TableNextColumn();
-					// TODO 绘制交易窗口的预设金额
-					/*
-					if (itemArray[i].priceList.Count == 0) {
-						ImGui.TextColored(color[itemArray[i].priceType], "---");
-						itemArray[i].price = 0;
+					if (itemPreset == null) {
+						ImGui.TextDisabled("---");
 					} else {
-						if (itemArray[i].price == 0) {
-							var countList = itemArray[i].priceList.Keys.ToList();
-							countList.Sort(PresetItem.Sort);
-							foreach (int num in countList) {
-								if (itemArray[i].count / num * num == itemArray[i].count) {
-									itemArray[i].price = itemArray[i].count / num * itemArray[i].priceList[num];
-									break;
-								}
-							}
+						var presetType = items[i].Quality == itemPreset.Quality ? 0 : Convert.ToInt32(items[i].Quality) << 1 + Convert.ToInt32(itemPreset.Quality);
+						if (items[i].Count == items[i].StackSize && itemPreset.StackPrice != 0) {
+							items[i].PresetPrice = itemPreset.StackPrice;
+							ImGui.TextColored(COLOR[presetType], $"{items[i].PresetPrice:#,0}");
+						} else if(itemPreset.SetCount != 0 && itemPreset.SetPrice != 0) {
+							items[i].PresetPrice = 1.0f * items[i].Count / itemPreset.SetCount * itemPreset.SetPrice;
+							ImGui.TextColored(COLOR[presetType], $"{items[i].PresetPrice:#,0}");
+						} else {
+							items[i].PresetPrice = 0;
+							ImGui.TextDisabled("---");
 						}
-						ImGui.TextColored(color[itemArray[i].priceType], $"{itemArray[i].price:#,0}");
-						if (ImGui.IsItemClicked())
-							ImGui.SetClipboardText($"{itemArray[i].price:#,0}");
-					}*/
+						if (ImGui.IsItemClicked()) { ImGui.SetClipboardText($"{items[i].PresetPrice:#,0}"); }
+					}
 					// 显示大区最低价格
 					ImGui.TableNextColumn();
 
 					if (!items[i].Quality) {
 						// NQ能够接受HQ价格
-						items[i].MinPrice = Math.Min(items[i].ItemPrice.GetMinPrice(worldId).Item1, items[i].ItemPrice.GetMinPrice(worldId).Item2);
+						var nq = items[i].ItemPrice.GetMinPrice(worldId).Item1;
+						var hq = items[i].ItemPrice.GetMinPrice(worldId).Item2;
+						if (nq == 0) {
+							items[i].MinPrice = hq;
+						} else if (hq == 0) {
+							items[i].MinPrice = nq;
+						} else {
+							items[i].MinPrice = Math.Min(nq, hq);
+						}
 					} else {
 						items[i].MinPrice = items[i].ItemPrice.GetMinPrice(worldId).Item2;
 					}
 					if (items[i].MinPrice > 0) {
 						ImGui.TextUnformatted(items[i].MinPrice.ToString("#,0"));
 						if (ImGui.IsItemHovered()) {
-							ImGui.SetTooltip($"World: {items[i].ItemPrice.GetMinPrice(worldId).Item3}\nTime: " + DateTimeOffset.FromUnixTimeMilliseconds(items[i].ItemPrice?.GetMinPrice(worldId).Item4 ?? 0).LocalDateTime.ToString(Price.format));
+							ImGui.SetTooltip($"NQ: {items[i].ItemPrice.GetMinPrice(worldId).Item1:#,0}\nHQ: {items[i].ItemPrice.GetMinPrice(worldId).Item2:#,0}\nWorld: {items[i].ItemPrice.GetMinPrice(worldId).Item3}\nTime: " + DateTimeOffset.FromUnixTimeMilliseconds(items[i].ItemPrice?.GetMinPrice(worldId).Item4 ?? 0).LocalDateTime.ToString(Price.format));
 						}
 					} else {
-						ImGui.TextUnformatted("---");
+						ImGui.TextDisabled("---");
 						if (ImGui.IsItemHovered() && items[i].ItemPrice.GetMinPrice(worldId).Item3.Length > 0) {
 							ImGui.SetTooltip(items[i].ItemPrice.GetMinPrice(worldId).Item3);
 						}
@@ -252,8 +254,7 @@ namespace TradeRecorder.Window
 
 				ImGui.TableNextColumn();
 				ImGui.TableNextColumn();
-				//foreach (var item in itemArray)
-				//sum += item.price;
+				foreach (var item in items) { sum += item.PresetPrice; }
 
 				sum += gil;
 				ImGui.TextUnformatted($"{sum:#,0}");
@@ -279,24 +280,23 @@ namespace TradeRecorder.Window
 				var type = modify.unknown_04;
 				if (type == 0x02) {
 					// 道具移动
-					if (modify.Page >= 0 && modify.Page <= 3) {
+					if ((uint)modify.Container >= 0 && (uint)modify.Container <= 3) {
 						// 从背包出
-						var item = Utils.GetInventoryItem(modify.Page, (int)modify.Slot);
+						var item = Utils.GetInventoryItem(modify.Container, (int)modify.Slot);
 						if (item == null) {
-							PluginLog.Warning($"item为空[{modify.Page},{modify.Slot}]");
+							PluginLog.Warning($"item为空[{modify.Container},{modify.Slot}]");
 						} else {
 							tradeItemList[0][modify.Slot2] = new TradeItem(item->ItemID, 1, Convert.ToBoolean((uint)item->Flags & (uint)FFXIVClientStructs.FFXIV.Client.Game.InventoryItem.ItemFlags.HQ));
 						}
-					} else if (modify.Page == 0x07D5 && modify.Page2 == 0x07D5) {
+					} else if (modify.Container == InventoryType.HandIn && modify.Container2 == InventoryType.HandIn) {
 						// 交易栏内互相移动
 						TradeItem a = tradeItemList[0][modify.Slot];
 						tradeItemList[0][modify.Slot] = tradeItemList[0][modify.Slot2];
 						tradeItemList[0][modify.Slot2] = a;
-					} else if (modify.Page == 0x07D5) {
+					} else if (modify.Container == InventoryType.HandIn) {
 						// 删除某一栏道具
 						tradeItemList[0][modify.Slot] = new TradeItem();
-					} else if (modify.Page == 0x07D1) {
-						// 水晶
+					} else if (modify.Container == InventoryType.Crystals) {
 						tradeItemList[0][modify.Slot2] = new TradeItem((uint)(modify.Slot + 2), modify.Count);
 					}
 				} else if (type == 0x1A) {
@@ -314,16 +314,16 @@ namespace TradeRecorder.Window
 		/// <param name="bytes"></param>
 		private void UpdateOtherTradeItem(byte[] bytes) {
 			// TODO 数据包拆离
-			if (bytes[3] == 0x10 && bytes[4] == 0xD9 && bytes[5] == 0x07 && bytes[8] == 0xD9 && bytes[9] == 0x07) {
-				CheckOtherTradeRound(BitConverter.ToUInt16(bytes));
+			if (bytes[3] == 0x10 && bytes[8] == 0xD9 && bytes[9] == 0x07) {
+				var list = CheckOtherTradeRound(BitConverter.ToUInt16(bytes));
 
 				var slot = BitConverter.ToUInt16(bytes, 0x0A);
 				var count = BitConverter.ToUInt32(bytes, 0x0C);
 				var itemId = BitConverter.ToUInt16(bytes, 0x10);
 				var isHq = bytes[0x20];
 
-				PluginLog.Verbose($"对方物品:[{slot}]{itemId}-{count}");
-				tradeItemList[1][slot] = new TradeItem(itemId, count, Convert.ToBoolean(isHq));
+				PluginLog.Verbose($"[{BitConverter.ToUInt16(bytes)}]对方物品:[{slot}]{itemId}-{count}");
+				list[slot] = new TradeItem(itemId, count, Convert.ToBoolean(isHq));
 			}
 		}
 		/// <summary>
@@ -333,18 +333,18 @@ namespace TradeRecorder.Window
 		private void UpdateOtherTradeMoney(byte[] bytes) {
 			// TODO 数据包拆离
 			if (bytes[3] == 0x10 && bytes[4] == 0xD9 && bytes[5] == 0x07) {
-				CheckOtherTradeRound(BitConverter.ToUInt16(bytes));
+				var list = CheckOtherTradeRound(BitConverter.ToUInt16(bytes));
 
 				var slot = BitConverter.ToUInt16(bytes, 6);// 对方交易栏槽位，0-4是格子，5是金币
 				var count = BitConverter.ToUInt32(bytes, 8);// 物品数量
 
 				if (slot == 5) {
 					tradeGil[1] = count;
-					PluginLog.Information($"对方金币:{count}");
+					PluginLog.Verbose($"[{BitConverter.ToUInt16(bytes)}]对方金币:{count}");
 				} else {
 					var itemId = BitConverter.ToUInt16(bytes, 0x10);
-					tradeItemList[1][slot] = new TradeItem(itemId, count);
-					PluginLog.Information($"对方水晶:[{slot}]{itemId}-{count}");
+					list[slot] = new TradeItem(itemId, count);
+					PluginLog.Verbose($"[{BitConverter.ToUInt16(bytes)}]对方水晶:[{slot}]{itemId}-{count}");
 				}
 
 			}
@@ -353,11 +353,13 @@ namespace TradeRecorder.Window
 		/// 检查对方交易栏数据包序号是否更新，更新则需要清除现有数据重新记录
 		/// </summary>
 		/// <param name="index">序号，暂时认为是2字节</param>
-		private void CheckOtherTradeRound(ushort index) {
-			if (index == targetRound) { return; }
-			targetRound = index;
-			tradeItemList[1] = new TradeItem[5] { new(), new(), new(), new(), new() };
-			tradeGil[1] = 0;
+		private TradeItem[] CheckOtherTradeRound(ushort index) {
+			if (index != targetRound) {
+				targetRound = index;
+				tradeItemList[1] = new TradeItem[5] { new(), new(), new(), new(), new() };
+				tradeGil[1] = 0;
+			}
+			return tradeItemList[1];
 		}
 		/// <summary>
 		/// 交易结算
@@ -438,7 +440,6 @@ namespace TradeRecorder.Window
 				var id = BitConverter.ToUInt32(bytes, 40);
 				var player = DalamudInterface.ObjectTable.FirstOrDefault(i => i.ObjectId == id) as PlayerCharacter;
 				if (player != null) {
-					PluginLog.Debug($"获得到ID：[{id:X}-{player.Name}]");
 					if (player.ObjectId != DalamudInterface.ClientState.LocalPlayer?.ObjectId) {
 						var world = DalamudInterface.DataManager.GetExcelSheet<World>()?.FirstOrDefault(r => r.RowId == player.HomeWorld.Id);
 						target = (player.HomeWorld.Id, player.Name.TextValue, world?.Name ?? "<Unknown>");
@@ -450,18 +451,16 @@ namespace TradeRecorder.Window
 			// 判断交易窗口是否存在
 			if (direction == NetworkMessageDirection.ZoneDown && opcode == Config.OpcodeOfTradeForm) {
 				var code = Marshal.ReadInt32(dataPtr);
-				// TODO 调整交易判定
-				// len:11
 				if (trading && code == 0) {
 					// 00 00 00 00 窗口关闭
 					trading = false;
 					Finish(success);
-					PluginLog.Debug("交易结束");
+					PluginLog.Verbose("交易结束");
 				} else if (!trading && code == 0x1000) {
 					// 00 10 00 00 交易窗口激活
 					Reset();
 					trading = true;
-					PluginLog.Debug("交易开始");
+					PluginLog.Verbose("交易开始");
 				}
 			}
 
@@ -501,7 +500,8 @@ namespace TradeRecorder.Window
 				return new SeStringBuilder().AddText($"[{TradeRecorder.PluginName}]").AddUiForeground("获取交易内容失败", 17);
 			}
 			var builder = new SeStringBuilder()
-				.AddText($"[{TradeRecorder.PluginName}]" + SeIconChar.ArrowRight.ToIconString())
+				.AddUiForeground($"[{TradeRecorder.PluginName}]", 45)
+				.AddText(SeIconChar.ArrowRight.ToIconString())
 				.Add(payload)
 				.AddUiForeground(1).Add(new PlayerPayload(target.Item2, target.Item1)).AddUiForegroundOff();
 			if (target.Item1 != DalamudInterface.ClientState.LocalPlayer?.HomeWorld.Id) { builder.Add(new IconPayload(BitmapFontIcon.CrossWorld)).AddText(target.Item3); }
@@ -554,7 +554,6 @@ namespace TradeRecorder.Window
 			}
 			var builder = BuildTradeSeString(payload, status, target, items, gil);
 			builder.Add(new NewLinePayload()).AddText("连续交易:");
-
 			// 如果金币和物品都没有，则略过该行为，不输出
 			// 获得
 			if (multiGil[0] != 0 || multiItems[0].Count != 0) {
@@ -570,6 +569,8 @@ namespace TradeRecorder.Window
 
 					var nqStr = item.StackSize > 1 && item.NqCount >= item.StackSize ? (item.NqCount / item.StackSize + "组" + item.NqCount % item.StackSize) : item.NqCount.ToString("#,0");
 					var hqStr = item.StackSize > 1 && item.HqCount >= item.StackSize ? (item.HqCount / item.StackSize + "组" + item.HqCount % item.StackSize) : item.HqCount.ToString("#,0");
+					if (nqStr.EndsWith("组0")) { nqStr = nqStr[..^1]; }
+					if (hqStr.EndsWith("组0")) { hqStr = hqStr[..^1]; }
 
 					if (item.HqCount == 0) {
 						builder.AddUiForeground($"<{nqStr}>", 1);
@@ -593,9 +594,10 @@ namespace TradeRecorder.Window
 					builder.AddUiForeground(SeIconChar.LinkMarker.ToIconString(), 500);
 					builder.AddUiForeground(item.Name, 1);
 
-					PluginLog.Debug($"累积给出组{multiItems[1].Count}[id={itemId},name={item.Name}]:{item.NqCount},{item.HqCount},{item.StackSize}");
 					var nqStr = item.StackSize > 1 && item.NqCount >= item.StackSize ? (item.NqCount / item.StackSize + "组" + item.NqCount % item.StackSize) : item.NqCount.ToString("#,0");
 					var hqStr = item.StackSize > 1 && item.HqCount >= item.StackSize ? (item.HqCount / item.StackSize + "组" + item.HqCount % item.StackSize) : item.HqCount.ToString("#,0");
+					if (nqStr.EndsWith("组0")) { nqStr = nqStr[..^1]; }
+					if (hqStr.EndsWith("组0")) { hqStr = hqStr[..^1]; }
 
 					if (item.HqCount == 0) {
 						builder.AddUiForeground($"<{nqStr}>", 1);
@@ -618,7 +620,7 @@ namespace TradeRecorder.Window
 		public void OnTradeTargetClick(uint commandId, SeString str) {
 			PlayerPayload? payload = (PlayerPayload?)str.Payloads.Find(i => i.Type == PayloadType.Player);
 			if (payload != null) {
-				tradeRecorder.PluginUi.History.ShowHistory((payload.World.RowId, payload.PlayerName, payload.World.Name.RawString));
+				tradeRecorder.PluginUi.History.ShowHistory(payload.PlayerName + "@" + payload.World.Name.RawString);
 			} else {
 				Chat.PrintError("未找到交易对象");
 				PluginLog.Verbose($"未找到交易对象，data=[{str.ToJson()}]");
