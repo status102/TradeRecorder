@@ -1,5 +1,4 @@
-﻿using Lumina.Excel.GeneratedSheets;
-using System;
+﻿using System;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -35,13 +34,9 @@ namespace TradeRecorder.Universalis.API
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var parsedRes = await JsonSerializer
-			  .DeserializeAsync<CurrentlyShownView>(res, cancellationToken: cancellationToken)
-			  .ConfigureAwait(false);
+			var parsedRes = await JsonSerializer.DeserializeAsync<CurrentlyShownView>(res, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-			if (parsedRes == null) {
-				throw new HttpRequestException("Universalis returned null response");
-			}
+			if (parsedRes == null) { throw new HttpRequestException("Universalis returned null response"); }
 
 			return parsedRes;
 		}

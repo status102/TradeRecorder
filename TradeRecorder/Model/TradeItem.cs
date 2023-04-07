@@ -14,7 +14,10 @@ namespace TradeRecorder.Model
 		public string Name { get; private init; }
 		public uint StackSize { get; private init; } = 1;
 		public Price.ItemPrice ItemPrice { get; private init; }
+
 		public int MinPrice = 0;
+		public float PresetPrice = 0;
+		public Preset? ItemPreset { get; private init; }
 		public TradeItem() { Id = 0; }
 		public TradeItem(uint id, uint count = 1, bool quality = false) {
 			Id = id;
@@ -28,6 +31,7 @@ namespace TradeRecorder.Model
 				IconId = item.Icon;
 				Name = item.Name;
 				StackSize = item.StackSize;
+				ItemPreset = TradeRecorder.Instance?.Configuration.PresetList.FirstOrDefault(i => i.Name == Name && i.Quality == Quality);
 			}
 			ItemPrice = Universalis.Price.GetItem(id);
 		}

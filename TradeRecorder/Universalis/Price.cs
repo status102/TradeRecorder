@@ -18,6 +18,7 @@ namespace TradeRecorder.Universalis
 		/// 最低查询间隔，以分钟为单位
 		/// </summary>
 		private const int Check_Delay = 60;
+		private const int Error_Delay = 60;
 		private static readonly Dictionary<uint, ItemPrice> items = new();
 
 		static Price() {
@@ -67,7 +68,7 @@ namespace TradeRecorder.Universalis
 			return items[itemId];
 		}
 
-		public  static string GetDcName(uint serverId) {
+		public static string GetDcName(uint serverId) {
 			if (cnWorldDC.ContainsKey(serverId)) {
 				return cnWorldDC[serverId];
 			} else {
@@ -101,13 +102,13 @@ namespace TradeRecorder.Universalis
 			/// <summary>
 			/// 是否能在市场出售
 			/// </summary>
-			private readonly bool SelledInMarket;
+			public readonly bool Marketable;
 			public ItemPrice(uint itemId) {
 				this.itemId = itemId;
 				var item = DalamudInterface.DataManager.GetExcelSheet<Item>()?.FirstOrDefault(i => i.RowId == itemId);
 				if (item != null) {
-					SelledInMarket = item.ItemSearchCategory.Row != 0;
-				} else { SelledInMarket = false; }
+					Marketable = item.ItemSearchCategory.Row != 0;
+				} else { Marketable = false; }
 			}
 
 			/// <summary>
@@ -116,14 +117,17 @@ namespace TradeRecorder.Universalis
 			/// <param name="serverId">所在服务器id</param>
 			/// <returns>(nq价格，hq价格，最低价服务器，价格上传时间)</returns>
 			public (int, int, string, long) GetMinPrice(uint serverId) {
-				if (!SelledInMarket) { return (0, 0, "无法在市场出售", 0); }
-				PluginLog.Verbose($"查询{itemId}的价格，上次查询时间：{lastCheckTime.ToString(format)}，当前时间：{DateTime.Now.ToString(format)}，时间间隔：{(DateTime.Now - lastCheckTime).Minutes}");
-				if ((DateTime.Now - lastCheckTime).Minutes > Check_Delay || !GetDcName(serverId).Equals(lastCheckDc)) {
+				if (!Marketable) { return (0, 0, "无法在市场出售", 0); }
+				PluginLog.Debug($"查询{itemId}的价格，上次查询时间：{lastCheckTime.ToString(format)}，当前时间：{DateTime.Now.ToString(format)}，时间间隔：{(DateTime.Now - lastCheckTime).Minutes}");
+				if ((DateTime.Now - lastCheckTime).Minutes > Check_Delay
+					|| GetDcName(serverId) != lastCheckDc
+					|| (minPriceHQ == 0 && (DateTime.Now - lastCheckTime).Minutes > Error_Delay)
+					) {
 					Task.Run(() => Update(serverId));
 				}
 				return (minPriceNQ, minPriceHQ, minPriceServer, updateTime);
 			}
-			private async void Update(uint serverId) {
+			public async void Update(uint serverId) {
 				var dcName = GetDcName(serverId);
 
 				try {
@@ -136,11 +140,14 @@ namespace TradeRecorder.Universalis
 						updateTime = price.lastUploadTime;
 						minPriceNQ = price.minPriceNQ;
 						minPriceHQ = price.minPriceHQ;
-						minPriceServer = price.listings?[0].worldName ?? "";
+						minPriceServer = price.listings?.FirstOrDefault()?.worldName ?? "";
 					}
 				} catch (HttpRequestException e) {
 					PluginLog.Error("获取价格失败：" + e.ToString());
 					minPriceServer = "获取失败：网络错误";
+					updateTime = 0;
+					minPriceNQ = 0;
+					minPriceHQ = 0;
 				}
 
 				lastCheckDc = dcName;
