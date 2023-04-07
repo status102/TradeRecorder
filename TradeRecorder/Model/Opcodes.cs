@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using static TradeRecorder.Universalis.CurrentlyShownView;
 
 namespace TradeRecorder.Model
 {
@@ -12,8 +11,6 @@ namespace TradeRecorder.Model
 		public string Region { get; set; }
 		[JsonPropertyName("lists")]
 		public OpcodeList Lists { get; set; } = new();
-
-
 
 		public class OpcodeList
 		{
