@@ -1,11 +1,13 @@
 # Trade Recorder (原 Trade Buddy)
-[![](https://img.shields.io/badge/dynamic/xml?color=success&label=repo%20version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeRecorder%2Fmaster%2FTradeBuddy%2FTradeRecorder.csproj)](https://github.com/status102/TradeRecorder/raw/master/latest.zip)
+[![](https://img.shields.io/badge/dynamic/xml?color=success&label=repo%20version&query=%2F%2FProject%2FPropertyGroup%2FVersion&url=https%3A%2F%2Fraw.githubusercontent.com%2Fstatus102%2FTradeRecorder%2Fmaster%2FTradeRecorder%2FTradeRecorder.csproj)](https://github.com/status102/TradeRecorder/raw/master/latest.zip)
 [![](https://img.shields.io/github/v/release/status102/TradeRecorder.svg)](https://github.com/status102/TradeRecorder/releases/latest)
 
 记录交易的内容并根据预先设定计算交易金额，不会自动填写进交易窗口。
 
 Record the content of the transaction and calculate the transaction amount according to the preset, and will not automatically fill in the transaction window.
 
+**注意**
+插件更名后，配置信息不支持自动导入，且设置窗口使用的导入导出格式有所差异，故不支持旧版本数据的直接导入。
 
 
 ## 使用方法
