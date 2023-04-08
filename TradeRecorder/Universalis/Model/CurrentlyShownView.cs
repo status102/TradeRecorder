@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace TradeBuddy.Universalis
+namespace TradeRecorder.Universalis
 {
 	public class CurrentlyShownView
 	{
