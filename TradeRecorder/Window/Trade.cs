@@ -22,7 +22,7 @@ using TradeRecorder.Universalis;
 
 namespace TradeRecorder.Window
 {
-    public class Trade
+	public class Trade
 	{
 		private TradeRecorder tradeRecorder { get; init; }
 		/// <summary>
@@ -89,7 +89,7 @@ namespace TradeRecorder.Window
 
 		#region Init
 		private DalamudLinkPayload Payload { get; init; }
-		private Configuration Config => tradeRecorder.Configuration;
+		private Configuration Config => tradeRecorder.Config;
 		public Trade(TradeRecorder tradeRecorder) {
 			this.tradeRecorder = tradeRecorder;
 			DalamudInterface.GameNetwork.NetworkMessage += NetworkMessageDelegate;
@@ -183,7 +183,7 @@ namespace TradeRecorder.Window
 					if (icon != null) { ImGui.Image(icon.ImGuiHandle, IMAGE_SIZE); }
 
 					ImGui.TableNextColumn();
-					ImGui.TextUnformatted(items[i].Name + (items[i].Quality?SeIconChar.HighQuality.ToIconString():string.Empty));
+					ImGui.TextUnformatted(items[i].Name + (items[i].Quality ? SeIconChar.HighQuality.ToIconString() : string.Empty));
 
 					var itemPreset = items[i].ItemPreset;
 					if (ImGui.IsItemHovered() && itemPreset != null) { ImGui.SetTooltip($"预设：{itemPreset.GetPresetString()}"); }
@@ -199,7 +199,7 @@ namespace TradeRecorder.Window
 						if (items[i].Count == items[i].StackSize && itemPreset.StackPrice != 0) {
 							items[i].PresetPrice = itemPreset.StackPrice;
 							ImGui.TextColored(COLOR[presetType], $"{items[i].PresetPrice:#,0}");
-						} else if(itemPreset.SetCount != 0 && itemPreset.SetPrice != 0) {
+						} else if (itemPreset.SetCount != 0 && itemPreset.SetPrice != 0) {
 							items[i].PresetPrice = 1.0f * items[i].Count / itemPreset.SetCount * itemPreset.SetPrice;
 							ImGui.TextColored(COLOR[presetType], $"{items[i].PresetPrice:#,0}");
 						} else {
@@ -340,11 +340,9 @@ namespace TradeRecorder.Window
 
 				if (slot == 5) {
 					tradeGil[1] = count;
-					PluginLog.Verbose($"[{BitConverter.ToUInt16(bytes)}]对方金币:{count}");
 				} else {
 					var itemId = BitConverter.ToUInt16(bytes, 0x10);
 					list[slot] = new TradeItem(itemId, count);
-					PluginLog.Verbose($"[{BitConverter.ToUInt16(bytes)}]对方水晶:[{slot}]{itemId}-{count}");
 				}
 
 			}

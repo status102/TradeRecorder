@@ -32,8 +32,7 @@ namespace TradeRecorder.Model
 				SetPrice = setPrice;
 				SetCount = setCount;
 				StackPrice = stackPrice;
-			} else {
-			}
+			} 
 		}
 
 		public string GetPresetString() {

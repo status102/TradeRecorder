@@ -13,7 +13,6 @@ namespace TradeRecorder.Universalis
 	{
 		public const string format = "yyyy-MM-dd HH:mm:ss";
 		private static readonly Dictionary<uint, string> cnWorldDC = new();
-		private static string dcName = "";
 		/// <summary>
 		/// 最低查询间隔，以分钟为单位
 		/// </summary>
@@ -123,6 +122,7 @@ namespace TradeRecorder.Universalis
 					|| GetDcName(serverId) != lastCheckDc
 					|| (minPriceHQ == 0 && (DateTime.Now - lastCheckTime).Minutes > Error_Delay)
 					) {
+					lastCheckTime = DateTime.Now;
 					Task.Run(() => Update(serverId));
 				}
 				return (minPriceNQ, minPriceHQ, minPriceServer, updateTime);
@@ -131,7 +131,7 @@ namespace TradeRecorder.Universalis
 				var dcName = GetDcName(serverId);
 
 				try {
-					var price = await Universalis.API.UniversalisClient.GetMarketData(dcName, itemId, CancellationToken.None);
+					var price = await API.UniversalisClient.GetMarketData(dcName, itemId, CancellationToken.None);
 					if (price?.itemID != itemId) {
 						minPriceNQ = -1;
 						minPriceHQ = -1;
@@ -149,9 +149,7 @@ namespace TradeRecorder.Universalis
 					minPriceNQ = 0;
 					minPriceHQ = 0;
 				}
-
 				lastCheckDc = dcName;
-				lastCheckTime = DateTime.Now;
 			}
 		}
 	}

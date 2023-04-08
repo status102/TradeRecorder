@@ -2,8 +2,8 @@
 using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TradeRecorder.Model;
-using static TradeRecorder.Window.Setting;
 
 namespace TradeRecorder
 {
@@ -41,41 +41,19 @@ namespace TradeRecorder
 		/// 交易成功后会触发该包，但是如果没有交易任何物品，则不会触发
 		/// </summary>
 		public ushort OpcodeOfUpdateInventorySlot = 0x0313;
-
 		public List<Preset> PresetList = new();
 
-		public List<PresetItem> PresetItemList = new();
-
-		[NonSerialized]
-		public Dictionary<string, int> PresetItemDictionary = new();
-
-		public void Dispose() { }
-
-		private void RefreshKeySet() {
-			PresetItemDictionary.Clear();
-			PresetItem[] list = PresetItemList.ToArray();
-			for (int i = 0; i < list.Length; i++) {
-				if (!PresetItemDictionary.ContainsKey(list[i].ItemName)) {
-					PresetItemDictionary.Add(list[i].ItemName, i);
-				}
-			}
-		}
-
 		#region Init and Save
-
 		[NonSerialized]
 		private DalamudPluginInterface? pluginInterface;
 
-		public void Initialize(TradeRecorder TradeRecorder, DalamudPluginInterface pluginInterface) {
+		public void Initialize(DalamudPluginInterface pluginInterface) {
 			this.pluginInterface = pluginInterface;
-
-			RefreshKeySet();
 		}
 		public void Save() {
+			PresetList = PresetList.Where(i => i.Id != 0).ToList();
 			this.pluginInterface!.SavePluginConfig(this);
-			RefreshKeySet();
 		}
-
 		#endregion
 	}
 }

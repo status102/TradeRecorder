@@ -28,8 +28,8 @@ namespace TradeRecorder
 		/// <param name="page">第几页，0起</param>
 		/// <param name="index">序号，0起</param>
 		/// <returns></returns>
-		public unsafe static InventoryItem* GetInventoryItem(uint page, int index) {
-			return InventoryManager.Instance()->GetInventoryContainer((InventoryType)page)->GetInventorySlot(index);
+		public unsafe static InventoryItem* GetInventoryItem(InventoryType page, int index) {
+			return InventoryManager.Instance()->GetInventoryContainer(page)->GetInventorySlot(index);
 		}
 
 	}

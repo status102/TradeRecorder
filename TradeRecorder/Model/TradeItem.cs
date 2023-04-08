@@ -31,9 +31,9 @@ namespace TradeRecorder.Model
 				IconId = item.Icon;
 				Name = item.Name;
 				StackSize = item.StackSize;
-				ItemPreset = TradeRecorder.Instance?.Configuration.PresetList.FirstOrDefault(i => i.Name == Name && i.Quality == Quality);
+				ItemPreset = TradeRecorder.Instance?.Config.PresetList.FirstOrDefault(i => i.Name == Name && i.Quality == Quality);
 			}
-			ItemPrice = Universalis.Price.GetItem(id);
+			ItemPrice = Price.GetItem(id);
 		}
 	}
 }

@@ -94,7 +94,7 @@ namespace TradeRecorder.Window
 			if (!visible) {
 				visible = true;
 			} else {
-				if (this.target?.Equals(target) ?? false) {
+				if (this.target == target) {
 					visible = false;
 					return;
 				}
