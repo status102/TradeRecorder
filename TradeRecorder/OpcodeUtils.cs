@@ -45,7 +45,7 @@ namespace TradeRecorder
 				}
 			}
 		}
-		public static void Check() {
+		private static void Check() {
 			if (onFinish == null) {
 				DalamudInterface.GameNetwork.NetworkMessage -= CaptureOpcodeDelegate;
 				PluginLog.Warning("捕获opcode失败：回调为空");

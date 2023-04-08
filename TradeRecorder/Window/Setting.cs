@@ -110,7 +110,7 @@ namespace TradeRecorder.Window
 
 					//导出到剪贴板
 					ImGui.SameLine();
-					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1)) { 
+					if (Utils.DrawIconButton(FontAwesomeIcon.Upload, -1)) {
 						ImGui.SetClipboardText(JsonConvert.SerializeObject(presetList));
 						Chat.PrintLog($"导出{presetList.Count}个预设至剪贴板");
 					}
@@ -122,7 +122,7 @@ namespace TradeRecorder.Window
 						try {
 							string clipboard = ImGui.GetClipboardText().Trim().Replace("/r", string.Empty).Replace("/n", string.Empty);
 							var items = JsonConvert.DeserializeObject<List<Preset>>(clipboard) ?? new();
-							foreach (var item in items ) {
+							foreach (var item in items) {
 								var exist = Config.PresetList.FindIndex(i => i.Name == item.Name && i.Quality == item.Quality);
 								if (exist == -1) {
 									Config.PresetList.Add(item);
@@ -399,12 +399,12 @@ namespace TradeRecorder.Window
 			OpcodeUtils.CaptureOpcode((status, windowOpcode, targetOpcode) => {
 				capturingOpcode = false;
 				if (!status || windowOpcode == 0 || targetOpcode == 0) {
-					Chat.PrintWarning("自动捕获Opcode失败");
+					Chat.PrintWarning("自动捕获部分Opcode失败，请手动更新Opcode");
 				} else {
 					Config.OpcodeOfTradeForm = windowOpcode;
 					Config.OpcodeOfTradeTargetInfo = targetOpcode;
 					Config.Save();
-					Chat.PrintLog("自动捕获Opcode成功");
+					Chat.PrintLog("自动捕获部分Opcode成功");
 				}
 			});
 			capturingOpcode = true;
@@ -433,7 +433,7 @@ namespace TradeRecorder.Window
 						opcodeInfo = res.FirstOrDefault(i => i.Region.Equals("Global"));
 					}
 					if (opcodeInfo == null) {
-						Chat.PrintError("无法找到对应服务器的Opcode列表");
+						Chat.PrintWarning($"无法找到对应服务器的Opcode列表");
 					} else {
 						var client = opcodeInfo.Lists.ClientZoneIpcType;
 						var server = opcodeInfo.Lists.ServerZoneIpcType;
@@ -449,8 +449,12 @@ namespace TradeRecorder.Window
 						var updateInventorySlot = client.FirstOrDefault(i => i.Name.Equals("UpdateInventorySlot"))?.Opcode;
 						if (updateInventorySlot != null) { Config.OpcodeOfUpdateInventorySlot = (ushort)updateInventorySlot; }
 
-						Config.Save();
-						Chat.PrintLog($"已将部分Opcode更新至{opcodeInfo.Region}服务器<{opcodeInfo.Version}版本>");
+						if (inventoryModifyHandler == null || itemInfo == null || currencyCrystalInfo == null || updateInventorySlot == null) {
+							Chat.PrintWarning($"部分Opcode自动更新失败，请手动更新Opcode");
+						} else {
+							Config.Save();
+							Chat.PrintLog($"已将部分Opcode更新至{opcodeInfo.Region}服务器<{opcodeInfo.Version}版本>");
+						}
 					}
 				}
 			} catch (HttpRequestException e) {
