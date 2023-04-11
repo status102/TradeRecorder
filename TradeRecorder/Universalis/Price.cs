@@ -14,10 +14,9 @@ namespace TradeRecorder.Universalis
 		public const string format = "yyyy-MM-dd HH:mm:ss";
 		private static readonly Dictionary<uint, string> cnWorldDC = new();
 		/// <summary>
-		/// 最低查询间隔，以分钟为单位
+		/// 最低查询间隔，以秒为单位
 		/// </summary>
-		private const int Check_Delay = 60;
-		private const int Error_Delay = 60;
+		private const int Check_Delay = 60 * 60;
 		private static readonly Dictionary<uint, ItemPrice> items = new();
 
 		static Price() {
@@ -97,7 +96,10 @@ namespace TradeRecorder.Universalis
 			private string minPriceServer = string.Empty;
 
 			private string lastCheckDc = string.Empty;
-			private DateTime lastCheckTime = new(2000, 1, 1);
+			/// <summary>
+			/// 最近查询UTC时间，秒为单位，查询失败时为-1
+			/// </summary>
+			private long lastCheckTime = 0;
 			/// <summary>
 			/// 是否能在市场出售
 			/// </summary>
@@ -117,12 +119,8 @@ namespace TradeRecorder.Universalis
 			/// <returns>(nq价格，hq价格，最低价服务器，价格上传时间)</returns>
 			public (int, int, string, long) GetMinPrice(uint serverId) {
 				if (!Marketable) { return (0, 0, "无法在市场出售", 0); }
-				PluginLog.Debug($"查询{itemId}的价格，上次查询时间：{lastCheckTime.ToString(format)}，当前时间：{DateTime.Now.ToString(format)}，时间间隔：{(DateTime.Now - lastCheckTime).Minutes}");
-				if ((DateTime.Now - lastCheckTime).Minutes > Check_Delay
-					|| GetDcName(serverId) != lastCheckDc
-					|| (minPriceHQ == 0 && (DateTime.Now - lastCheckTime).Minutes > Error_Delay)
-					) {
-					lastCheckTime = DateTime.Now;
+				if ((DateTimeOffset.Now.ToUnixTimeSeconds() - lastCheckTime) > Check_Delay || GetDcName(serverId) != lastCheckDc) {
+					lastCheckTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 					Task.Run(() => Update(serverId));
 				}
 				return (minPriceNQ, minPriceHQ, minPriceServer, updateTime);
@@ -133,6 +131,7 @@ namespace TradeRecorder.Universalis
 				try {
 					var price = await API.UniversalisClient.GetMarketData(dcName, itemId, CancellationToken.None);
 					if (price?.itemID != itemId) {
+						updateTime = 0;
 						minPriceNQ = -1;
 						minPriceHQ = -1;
 						minPriceServer = string.Empty;
