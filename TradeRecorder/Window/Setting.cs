@@ -20,12 +20,6 @@ namespace TradeRecorder.Window
 	{
 		private readonly static Vector2 Window_Size = new(720, 640);
 		private readonly static Vector2 IMAGE_SIZE = new(54, 54);
-		private readonly static Vector4 ALERT_COLOR = new(208 / 255f, 177 / 255f, 50 / 255f, 1);
-		/// <summary>
-		/// 不能在市场出售时展示灰色标
-		/// </summary>
-		private readonly static Vector4 UNMARKETABLE_COLOR = new(1, 1, 1, 200 / 255f);
-		private readonly static Vector4 DISABLE_COLOR = new(1, 1, 1, 0.5f);
 		private const int ITEM_WIDTH = 190, ITEM_INTERNAL = 5;
 
 		private readonly TradeRecorder tradeRecorder;
@@ -132,7 +126,7 @@ namespace TradeRecorder.Window
 							}
 							Chat.PrintWarning($"从剪贴板导入{items.Count}个预设");
 						} catch (Exception e) {
-							Chat.PrintWarning("从剪贴板导入失败");
+							Chat.PrintMsg("从剪贴板导入失败");
 							PluginLog.Error("从剪贴板导入失败" + e.ToString());
 						}
 						Config.Save();
@@ -256,7 +250,7 @@ namespace TradeRecorder.Window
 					ImGui.TextUnformatted(item.GetPresetString());
 				} else {
 					// 如果不能在市场出售
-					ImGui.TextColored(UNMARKETABLE_COLOR, item.GetPresetString());
+					ImGui.TextDisabled(item.GetPresetString());
 				}
 				ImGui.EndGroup();
 				ImGui.EndChild();
