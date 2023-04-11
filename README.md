@@ -24,23 +24,23 @@ Record the content of the transaction and calculate the transaction amount accor
 
 1. 勾选<修改Opcode>选项
 2. 点击按钮1<捕获Opcode>，然后在1分钟内与任意玩家申请交易，并取消
-3. 点击按钮2<从GitHub更新以下Opcode>，程序将会自动从GitHub的 [仓库](https://github.com/karashiiro/FFXIVOpcodes) 获取Opcode。如果`ClientState.ClientLanguage == ClientLanguage.ChineseSimplified`则使用CN的Opcode，其他语言则使用Global。
+3. 点击按钮2<从GitHub更新以下Opcode>，程序将会自动从GitHub的 [仓库](https://github.com/karashiiro/FFXIVOpcodes) 获取Opcode。如果客户端语言为简中则使用CN的Opcode，其他语言则使用Global。
 
-1. check off <修改Opcode>
-2. click button 1, then trade with other and cancel in 1 min
-3. click button 2, program will automatically get the Opcode from the [GitHub repository](https://github.com/karashiiro/FFXIVOpcodes). If `ClientState.ClientLanguage == ClientLanguage.ChineseSimplified`, use the Opcode of CN, and use Global for other languages.
+1. Check off <修改Opcode>
+2. Click button 1, then trade with other and cancel in 1 min
+3. Click button 2, program will automatically get the Opcode from the [GitHub repository](https://github.com/karashiiro/FFXIVOpcodes). If ClientLanguage is ChineseSimplified, use the Opcode of CN, and use Global for other languages.
 
 ![](https://github.com/status102/TradeRecorder/raw/master/Image/ChangeOpcode.png)
 
 ## 使用方法
 
-`/tr` 打开交易历史记录窗口，查看过往交易
-
-`/tr` open history form
+- `/tr` 打开交易历史记录窗口，查看过往交易
+- `/tr` open history window
 
 ![](https://github.com/status102/TradeRecorder/raw/master/Image/History.png)
 
-`/tr cfg|config` 打开设置窗口设置物品的预期价格
+- `/tr cfg|config` 打开设置窗口设置物品的预期价格
+- `/tr cfg|config` open setting window
 
 ![](https://github.com/status102/TradeRecorder/raw/master/Image/Setting.png)
 
