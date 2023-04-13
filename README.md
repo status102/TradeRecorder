@@ -6,6 +6,10 @@
 
 Record the content of the transaction and calculate the transaction amount according to the preset, and will not automatically fill in the transaction window.
 
+如果有什么新点子或者什么问题，欢迎提出。
+
+If you have any idea or find any problem, please make an issue or connect with me in [discord](https://discord.gg/5bzGGyazEC).
+
 ***注意***
 
 程序更名后，配置信息不支持自动导入，且设置窗口使用的导入导出格式有所差异，故不支持旧版本数据的直接导入。
